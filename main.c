@@ -50,9 +50,10 @@ int ciph_otp(byte *plaintext, unsigned int pt_len, byte *key, byte **ciphertext,
             return CRP_ERR;
     }
 
-    *ct_len = pt_len;
-    while (pt_len--)
-        (*ciphertext)[pt_len] = plaintext[pt_len] ^ key[pt_len];
+    unsigned int i;
+    for (i = 0; i < pt_len; ++i)
+        (*ciphertext)[i] = plaintext[i] ^ key[i];
+    *ct_len = i;
 
     return CRP_OK;
 }
