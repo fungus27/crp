@@ -11,12 +11,14 @@ int basic_rand(byte *out, unsigned int size) {
     FILE *urand = fopen("/dev/urandom", "r");
     if (!urand) {
         printf("cannot open '/dev/urandom/'. %s\n", strerror(errno));
+        fclose(urand);
         return CRP_ERR;
     }
 
     unsigned int seed;
     if(!fread(&seed, sizeof(unsigned int), 1, urand)) {
         printf("couldn't read seed from '/dev/urandom/'.\n");
+        fclose(urand);
         return CRP_ERR;
     }
     srand(seed);
@@ -25,6 +27,7 @@ int basic_rand(byte *out, unsigned int size) {
         byte combine;
         if(!fread(&combine, 1, 1, urand)) {
             printf("couldn't read byte from '/dev/urandom/'.\n");
+            fclose(urand);
             return CRP_ERR;
         }
         byte res = (rand() * combine) + 0x1485914;
@@ -32,6 +35,7 @@ int basic_rand(byte *out, unsigned int size) {
 
         out[size] = res;
     }
+    fclose(urand);
     return CRP_OK;
 }
 
