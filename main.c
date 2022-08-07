@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define CRP_ERR 0 
+#define CRP_ERR 0
 #define CRP_OK 1
 typedef unsigned char byte;
 
@@ -67,7 +67,7 @@ int main() {
     ciph_otp(pt, sizeof(pt), key, &ct, &ct_len);
 
     printf("plaintext: %s\n", pt);
-    
+
     printf("ciphertext (hex): ");
     for (unsigned int i = 0; i < sizeof(pt); ++i)
         printf("%hhx", ct[i]);
