@@ -58,14 +58,50 @@ int ciph_otp(byte *plaintext, unsigned int pt_len, byte *key, byte **ciphertext,
     return CRP_OK;
 }
 
+// to decrypt swap ciphertext with plaintext
+// keylen: <1, 256>, cipheretxtlen: messagelen
+int ciph_rc4(byte *plaintext, unsigned int pt_len, byte *key, unsigned int key_len, byte **ciphertext, unsigned int *ct_len) {
+    if (!*ciphertext) {
+        *ciphertext = malloc(pt_len);
+        if (!*ciphertext)
+            return CRP_ERR;
+    }
+    
+    byte s[256];
+    byte i = 0, j = 0;
+    for (i = 0; i < 255; ++i)
+        s[i] = i;
+    for (i = 0; i < 255; ++i) {
+        j = (j + s[i] + key[i % key_len]) % 256;
+        byte temp = s[i];
+        s[i] = s[j];
+        s[j] = temp;
+    }
+
+    unsigned int k = i = j = 0;
+    for (k = 0; k < pt_len; ++k) {
+        i = (i + 1) % 256;
+        j = (j + s[i]) % 256;
+
+        byte temp = s[i];
+        s[i] = s[j];
+        s[j] = temp;
+
+        (*ciphertext)[k] = plaintext[k] ^ s[(s[i] + s[j]) % 256];
+    }
+    *ct_len = k;
+
+    return CRP_OK;
+}
+
 int main() {
     byte pt[] = "zupa.";
-    byte *key = malloc(sizeof(pt));
+    byte *key = malloc(32);
     byte *ct = NULL;
 
-    rand_bytes(key, sizeof(pt));
+    rand_bytes(key, 32);
     unsigned int ct_len;
-    ciph_otp(pt, sizeof(pt), key, &ct, &ct_len);
+    ciph_rc4(pt, sizeof(pt), key, 32, &ct, &ct_len);
 
     printf("plaintext: %s\n", pt);
 
@@ -76,10 +112,11 @@ int main() {
 
     byte *dec_ct = NULL;
     unsigned int dec_ct_len;
-    ciph_otp(ct, ct_len, key, &dec_ct, &dec_ct_len);
+    ciph_rc4(ct, ct_len, key, 32, &dec_ct, &dec_ct_len);
 
     printf("decrypted ciphertext: %s\n", dec_ct);
 
+    free(key);
     free(dec_ct);
     free(ct);
 }
