@@ -7,7 +7,7 @@
 #define CRP_OK 0
 typedef unsigned char byte;
 
-int basic_rand(byte *out, unsigned int size) {
+int rand_bytes(byte *out, unsigned int size) {
     FILE *urand = fopen("/dev/urandom", "r");
     if (!urand) {
         printf("cannot open '/dev/urandom/'. %s\n", strerror(errno));
@@ -41,6 +41,6 @@ int basic_rand(byte *out, unsigned int size) {
 
 int main() {
     unsigned int random;
-    basic_rand((byte*)&random, sizeof(unsigned int));
+    rand_bytes((byte*)&random, sizeof(unsigned int));
     printf("%u\n", random);
 }
