@@ -5,7 +5,14 @@
 
 #define CRP_ERR 0
 #define CRP_OK 1
+
 typedef unsigned char byte;
+
+void hexdump(byte *in, unsigned int len) {
+    for (unsigned int i = 0; i < len; ++i)
+        printf("%hhx", in[i]);
+    printf("\n");
+}
 
 int rand_bytes(byte *out, unsigned int size) {
     FILE *urand = fopen("/dev/urandom", "r");
@@ -106,9 +113,7 @@ int main() {
     printf("plaintext: %s\n", pt);
 
     printf("ciphertext (hex): ");
-    for (unsigned int i = 0; i < sizeof(pt); ++i)
-        printf("%hhx", ct[i]);
-    printf("\n");
+    hexdump(ct, ct_len);
 
     byte *dec_ct = NULL;
     unsigned int dec_ct_len;
