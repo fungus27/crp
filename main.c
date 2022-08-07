@@ -3,8 +3,8 @@
 #include <string.h>
 #include <errno.h>
 
-#define CRP_ERR -1
-#define CRP_OK 0
+#define CRP_ERR 0 
+#define CRP_OK 1
 typedef unsigned char byte;
 
 int rand_bytes(byte *out, unsigned int size) {
