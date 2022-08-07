@@ -39,8 +39,47 @@ int rand_bytes(byte *out, unsigned int size) {
     return CRP_OK;
 }
 
+// if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
+
+// to decrypt swap ciphertext with plaintext
+// keylen: messagelen, ciphertextlen: messagelen
+int ciph_otp(byte *plaintext, unsigned int pt_len, byte *key, byte **ciphertext, unsigned int *ct_len) {
+    if (!*ciphertext) {
+        *ciphertext = malloc(pt_len);
+        if (!*ciphertext)
+            return CRP_ERR;
+    }
+
+    unsigned int i;
+    for (i = 0; i < pt_len; ++i)
+        (*ciphertext)[i] = plaintext[i] ^ key[i];
+    *ct_len = i;
+
+    return CRP_OK;
+}
+
 int main() {
-    unsigned int random;
-    rand_bytes((byte*)&random, sizeof(unsigned int));
-    printf("%u\n", random);
+    byte pt[] = "zupa.";
+    byte *key = malloc(sizeof(pt));
+    byte *ct = NULL;
+
+    rand_bytes(key, sizeof(pt));
+    unsigned int ct_len;
+    ciph_otp(pt, sizeof(pt), key, &ct, &ct_len);
+
+    printf("plaintext: %s\n", pt);
+    
+    printf("ciphertext (hex): ");
+    for (unsigned int i = 0; i < sizeof(pt); ++i)
+        printf("%hhx", ct[i]);
+    printf("\n");
+
+    byte *dec_ct = NULL;
+    unsigned int dec_ct_len;
+    ciph_otp(ct, ct_len, key, &dec_ct, &dec_ct_len);
+
+    printf("decrypted ciphertext: %s\n", dec_ct);
+
+    free(dec_ct);
+    free(ct);
 }
