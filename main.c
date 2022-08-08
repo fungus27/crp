@@ -85,7 +85,7 @@ int hash_md5(u8 *plaintext, u32 pt_len, u8 **digest) {
     u32 output[4] = {0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476};
 
     u32 padded_len = 64 * ((pt_len + 64 - 1) / 64);
-    if (pt_len % 64 == 0) padded_len += 64;
+    if (pt_len % 64 == 0 || pt_len % 64 >= 56) padded_len += 64;
     u8 *pad_plaintext = malloc(padded_len);
     memcpy(pad_plaintext, plaintext, pt_len);
     pad_plaintext[pt_len] = 0x80;
