@@ -51,7 +51,7 @@ i32 rand_bytes(u8 *out, u32 size) {
     return CRP_OK;
 }
 
-// ciphertextlen: 16
+// digestlen: 16
 int hash_md5(u8 *plaintext, u32 pt_len, u8 **digest) {
     if (!*digest) {
         *digest = malloc(16);
