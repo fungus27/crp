@@ -15,7 +15,7 @@ typedef int i32;
 
 void hexdump(u8 *in, u32 len) {
     for (u32 i = 0; i < len; ++i)
-        printf("%hhx", in[i]);
+        printf("%.2hhx", in[i]);
     printf("\n");
 }
 
