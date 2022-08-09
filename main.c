@@ -52,7 +52,7 @@ i32 rand_bytes(u8 *out, u32 size) {
 }
 
 // digestlen: 16
-int hash_md5(u8 *plaintext, u32 pt_len, u8 **digest) {
+i32 hash_md5(u8 *plaintext, u32 pt_len, u8 **digest) {
     if (!*digest) {
         *digest = malloc(16);
         if (!*digest)
