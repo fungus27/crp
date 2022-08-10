@@ -12,6 +12,7 @@ typedef unsigned long u64;
 typedef int i32;
 
 #define LEFTROTATE32(n, d) ( ( (n) << (d) ) | ( (n) >> (32 - (d)) ) )
+#define SWAPENDIAN32(n) ( ( ( (n) & 0xff ) << 24 ) | ( ( (n) & 0xff00 ) << 8 ) | ( ( (n) & 0xff0000 ) >> 8 ) | ( ( (n) & 0xff000000 ) >> 24 ) )
 
 void hexdump(u8 *in, u32 len) {
     for (u32 i = 0; i < len; ++i)
@@ -134,6 +135,79 @@ i32 hash_md5(u8 *plaintext, u32 pt_len, u8 **digest) {
     return CRP_OK;
 }
 
+// digestlen: 20
+i32 hash_sha1(u8 *plaintext, u32 pt_len, u8 **digest) {
+    if (!*digest) {
+        *digest = malloc(20);
+        if (!*digest)
+            return CRP_ERR;
+    }
+    u32 h[5] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0};
+
+    u32 padded_len = 64 * ((pt_len + 64 - 1) / 64);
+    if (pt_len % 64 == 0 || pt_len % 64 >= 56) padded_len += 64;
+    u8 *pad_plaintext = malloc(padded_len);
+    memcpy(pad_plaintext, plaintext, pt_len);
+    pad_plaintext[pt_len] = 0x80;
+    memset(pad_plaintext + pt_len + 1, 0, padded_len - pt_len - 9);
+    u64 footer = pt_len * 8;
+    footer = SWAPENDIAN32((footer & 0xFFFFFFFF00000000) >> 32) | (SWAPENDIAN32((footer & 0xFFFFFFFF)) << 32);
+    memcpy(pad_plaintext + padded_len - 8, &footer, 8);
+    for (u32 i = 0; i < padded_len; i += 64) {
+        u32 words[80];
+
+        for (u32 j = 0; j < 16; ++j)
+            words[j] = SWAPENDIAN32(*(unsigned int*)(pad_plaintext + i + j * 4));
+
+        for (u32 j = 16; j < 80; j++)
+            words[j] = LEFTROTATE32(words[j-3] ^ words[j - 8] ^ words[j - 14] ^ words[j - 16], 1);
+
+        u32 a = h[0];
+        u32 b = h[1];
+        u32 c = h[2];
+        u32 d = h[3];
+        u32 e = h[4];
+        for (u32 j = 0; j < 80; ++j) {
+            u32 f, k;
+            if (j <= 19) {
+                f = (b & c) | (~b & d);
+                k = 0x5A827999;
+            }
+            else if (j >= 20 && j <= 39) {
+                f = b ^ c ^ d;
+                k = 0x6ED9EBA1;
+            }
+            else if (j >= 40 && j <= 59) {
+                f = (b & c) | (b & d) | (c & d);
+                k = 0x8F1BBCDC;
+            }
+            else if (j >= 60 && j <= 79) {
+                f = b ^ c ^ d;
+                k = 0xCA62C1D6;
+            }
+            u32 temp = LEFTROTATE32(a, 5) + f + e + k + words[j];
+            e = d;
+            d = c;
+            c = LEFTROTATE32(b, 30);
+            b = a;
+            a = temp;
+        }
+        h[0] += a;
+        h[1] += b;
+        h[2] += c;
+        h[3] += d;
+        h[4] += e;
+    }
+    h[0] = SWAPENDIAN32(h[0]);
+    h[1] = SWAPENDIAN32(h[1]);
+    h[2] = SWAPENDIAN32(h[2]);
+    h[3] = SWAPENDIAN32(h[3]);
+    h[4] = SWAPENDIAN32(h[4]);
+    memcpy(*digest, h, 20);
+    free(pad_plaintext);
+    return CRP_OK;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // to decrypt swap ciphertext with plaintext
@@ -190,10 +264,10 @@ i32 ciph_rc4(u8 *plaintext, u32 pt_len, u8 *key, u32 key_len, u8 **ciphertext, u
 }
 
 i32 main() {
-    u8 pt[5] = "zupa.";
+    u8 pt[] = "zupa.";
     u8 *digest = NULL;
-    hash_md5(pt, 5, &digest);
+    hash_sha1(pt, strlen(pt), &digest);
     printf("digest: ");
-    hexdump(digest, 16);
+    hexdump(digest, 20);
     free(digest);
 }
