@@ -287,7 +287,7 @@ i32 hash_sha224(u8 *plaintext, u32 pt_len, u8 **digest) {
         hash[6] += g;
         hash[7] += h;
     }
-    for (u32 i = 0; i < 8; ++i)
+    for (u32 i = 0; i < 7; ++i)
         hash[i] = SWAPENDIAN32(hash[i]);
     memcpy(*digest, hash, 28);
     free(pad_plaintext);
