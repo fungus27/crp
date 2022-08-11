@@ -157,8 +157,7 @@ i32 hash_sha1(u8 *plaintext, u32 pt_len, u8 **digest) {
     memcpy(pad_plaintext, plaintext, pt_len);
     pad_plaintext[pt_len] = 0x80;
     memset(pad_plaintext + pt_len + 1, 0, padded_len - pt_len - 9);
-    u64 footer = pt_len * 8;
-    footer = SWAPENDIAN32((footer & 0xFFFFFFFF00000000) >> 32) | (SWAPENDIAN32((footer & 0xFFFFFFFF)) << 32);
+    u64 footer = SWAPENDIAN64((u64)(pt_len * 8));
     memcpy(pad_plaintext + padded_len - 8, &footer, 8);
     for (u32 i = 0; i < padded_len; i += 64) {
         u32 words[80];
@@ -239,8 +238,7 @@ i32 hash_sha224(u8 *plaintext, u32 pt_len, u8 **digest) {
     memcpy(pad_plaintext, plaintext, pt_len);
     pad_plaintext[pt_len] = 0x80;
     memset(pad_plaintext + pt_len + 1, 0, padded_len - pt_len - 9);
-    u64 footer = pt_len * 8;
-    footer = SWAPENDIAN32((footer & 0xFFFFFFFF00000000) >> 32) | (SWAPENDIAN32((footer & 0xFFFFFFFF)) << 32);
+    u64 footer = SWAPENDIAN64((u64)(pt_len * 8));
     memcpy(pad_plaintext + padded_len - 8, &footer, 8);
     for (u32 i = 0; i < padded_len; i += 64) {
         u32 words[64];
@@ -318,8 +316,7 @@ i32 hash_sha256(u8 *plaintext, u32 pt_len, u8 **digest) {
     memcpy(pad_plaintext, plaintext, pt_len);
     pad_plaintext[pt_len] = 0x80;
     memset(pad_plaintext + pt_len + 1, 0, padded_len - pt_len - 9);
-    u64 footer = pt_len * 8;
-    footer = SWAPENDIAN32((footer & 0xFFFFFFFF00000000) >> 32) | (SWAPENDIAN32((footer & 0xFFFFFFFF)) << 32);
+    u64 footer = SWAPENDIAN64((u64)(pt_len * 8));
     memcpy(pad_plaintext + padded_len - 8, &footer, 8);
     for (u32 i = 0; i < padded_len; i += 64) {
         u32 words[64];
@@ -405,8 +402,7 @@ i32 hash_sha512(u8 *plaintext, u32 pt_len, u8 **digest) {
     memcpy(pad_plaintext, plaintext, pt_len);
     pad_plaintext[pt_len] = 0x80;
     memset(pad_plaintext + pt_len + 1, 0, padded_len - pt_len - 17);
-    u64 footer = pt_len * 8;
-    footer = SWAPENDIAN32((footer & 0xFFFFFFFF00000000) >> 32) | (SWAPENDIAN32((footer & 0xFFFFFFFF)) << 32);
+    u64 footer = SWAPENDIAN64((u64)(pt_len * 8));
     memset(pad_plaintext + padded_len - 16, 0, 8);
     memcpy(pad_plaintext + padded_len - 8, &footer, 8);
     for (u32 i = 0; i < padded_len; i += 128) {
