@@ -325,7 +325,7 @@ i32 hash_sha256(u8 *plaintext, u32 pt_len, u8 **digest) {
         u32 words[64];
 
         for (u32 j = 0; j < 16; ++j)
-            words[j] = SWAPENDIAN32(*(unsigned int*)(pad_plaintext + i + j * 4));
+            words[j] = SWAPENDIAN32(*(u32*)(pad_plaintext + i + j * 4));
 
         for (u32 j = 16; j < 64; j++)
             words[j] = words[j - 16] + (RIGHTROTATE32(words[j - 15], 7) ^ RIGHTROTATE32(words[j - 15], 18) ^ (words[j - 15] >> 3)) + words[j - 7]
