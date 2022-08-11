@@ -1,15 +1,16 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 
 #define CRP_ERR 0
 #define CRP_OK 1
 
-typedef unsigned char u8;
-typedef unsigned int u32;
-typedef unsigned long u64;
-typedef int i32;
+typedef uint8_t u8;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int32_t i32;
 
 #define LEFTROTATE32(n, d) ( ( (n) << (d) ) | ( (n) >> (32 - (d)) ) )
 #define RIGHTROTATE32(n, d) ( ( (n) >> (d) ) | ( (n) << (32 - (d)) ) )
