@@ -776,7 +776,7 @@ i32 ciph_rc4(u8 *plaintext, u32 pt_len, u8 *key, u32 key_len, u8 **ciphertext, u
     return CRP_OK;
 }
 
-i32 main() {
+int main() {
     u8 pt[] = "zupa.";
     u8 *digest = NULL;
     hash_sha512_224(pt, strlen(pt), &digest);
