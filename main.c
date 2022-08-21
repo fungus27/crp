@@ -12,6 +12,9 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 typedef int32_t i32;
 
+#define LEFTROTATE8(n, d) ( ( (n) << (d) ) | ( (n) >> (8 - (d)) ) )
+#define RIGHTROTATE8(n, d) ( ( (n) >> (d) ) | ( (n) << (8 - (d)) ) )
+
 #define LEFTROTATE32(n, d) ( ( (n) << (d) ) | ( (n) >> (32 - (d)) ) )
 #define RIGHTROTATE32(n, d) ( ( (n) >> (d) ) | ( (n) << (32 - (d)) ) )
 #define SWAPENDIAN32(n) ( ( ( (n) & 0xff ) << 24 ) | ( ( (n) & 0xff00 ) << 8 ) | ( ( (n) & 0xff0000 ) >> 8 ) | ( ( (n) & 0xff000000 ) >> 24 ) )
@@ -723,6 +726,112 @@ i32 hash_sha512_256(u8 *plaintext, u32 pt_len, u8 **digest) {
 
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
+// prototype (TODO: optimize), single block aes256 encryption
+// ptlen: 16, keylen: 32, ctlen: 16
+i32 enc_aes256(u8 *plaintext, u8 *key, u8 **ciphertext) {
+    const u8 r = 15, n = 8; // TODO: implement other key sizes for aes
+    if (!*ciphertext) {
+        *ciphertext = malloc(16);
+        if (!*ciphertext)
+            return CRP_ERR;
+    }
+
+    // sbox generation by bruteforce (TODO: implement more efficient way of generation or just hardcode the table in)
+    u8 sbox[256];
+    for (u32 i = 0; i < 256; ++i) {
+        for (u32 j = 0; j < 256; ++j) {
+            u8 prod = 0, a = i, b = j;
+            for (u32 k = 0; k < 8; ++k) {
+                prod ^= (b & 1) ? a : 0;
+                b >>= 1;
+                u8 carry = a & 0x80;
+                a <<= 1;
+                a ^= carry ? 0x1b : 0;
+            }
+            if (prod == 1) {
+                b = j;
+                b ^= LEFTROTATE8(b, 1) ^ LEFTROTATE8(b, 2) ^ LEFTROTATE8(b, 3) ^ LEFTROTATE8(b, 4) ^ 0x63;
+                sbox[i] = b;
+                break;
+            }
+        }
+    }
+    sbox[0] = 0x63;
+
+    // key expansion
+    u8 rc = 1;
+    u32 exp_key[r * 4];
+    memcpy(exp_key, key, n * 4);
+    for (u32 i = n; i < r * 4; ++i) {
+        u32 t = exp_key[i - 1];
+        if (i % n == 0) {
+            u32 rcon = rc;
+            t = RIGHTROTATE32(exp_key[i - 1], 8);
+            t = (sbox[((t & 0xff000000) >> 24)] << 24) | (sbox[((t & 0xff0000) >> 16)] << 16) | (sbox[((t & 0xff00) >> 8)] << 8) | sbox[t & 0xff];
+            t ^= rcon;
+            rc = (rc << 1) ^ (rc >= 0x80 ? 0x1b : 0);
+        }
+        else if (n > 6 && i % n == 4)
+            t = (sbox[((exp_key[i-1] & 0xff000000) >> 24)] << 24) | (sbox[((exp_key[i-1] & 0xff0000) >> 16)] << 16) | (sbox[((exp_key[i-1] & 0xff00) >> 8)] << 8) | sbox[exp_key[i-1] & 0xff];
+        exp_key[i] = exp_key[i - n] ^ t;
+    }
+
+    // initial round
+    for (u32 i = 0; i < 16; ++i)
+        (*ciphertext)[i] = plaintext[i] ^ ((u8*)exp_key)[i];
+
+    // main rounds
+    for (u32 i = 0; i < r - 2; ++i) {
+        // subbytes
+        for (u32 j = 0; j < 16; ++j) {
+            (*ciphertext)[j] = sbox[(*ciphertext)[j]];
+        }
+        // shiftrows
+        u8 temp[16];
+        memcpy(temp, (*ciphertext), 16);
+        for (u32 j = 0; j < 16; ++j) {
+            (*ciphertext)[j] = temp[(j * 5) % 16];
+        }
+        // mixcolumns
+        for (u32 j = 0; j < 4; ++j) {
+            u8 *r = (*ciphertext) + j * 4;
+            u8 a[4];
+            u8 b[4];
+            u8 h;
+            for (u8 c = 0; c < 4; ++c) {
+                a[c] = r[c];
+                h = (r[c] >> 7) & 1;
+                b[c] = r[c] << 1;
+                b[c] ^= h * 0x1b;
+            }
+            r[0] = b[0] ^ a[3] ^ a[2] ^ b[1] ^ a[1];
+            r[1] = b[1] ^ a[0] ^ a[3] ^ b[2] ^ a[2];
+            r[2] = b[2] ^ a[1] ^ a[0] ^ b[3] ^ a[3];
+            r[3] = b[3] ^ a[2] ^ a[1] ^ b[0] ^ a[0];
+        }
+        // addroundkey
+        for (u32 j = 0; j < 16; ++j)
+            (*ciphertext)[j] ^= ((u8*)exp_key)[(i + 1) * 16 + j];
+    }
+
+    // final round
+    // subbytes
+    for (u32 j = 0; j < 16; ++j) {
+        (*ciphertext)[j] = sbox[(*ciphertext)[j]];
+    }
+    // shiftrows
+    u8 temp[16];
+    memcpy(temp, (*ciphertext), 16);
+    for (u32 j = 0; j < 16; ++j) {
+        (*ciphertext)[j] = temp[(j * 5) % 16];
+    }
+    // addroundkey
+    for (u32 j = 0; j < 16; ++j)
+        (*ciphertext)[j] ^= ((u8*)exp_key)[(r - 1) * 16 + j];
+
+    return CRP_OK;
+}
+
 // to decrypt swap ciphertext with plaintext
 // keylen: messagelen, ciphertextlen: messagelen
 i32 ciph_otp(u8 *plaintext, u32 pt_len, u8 *key, u8 **ciphertext, u32 *ct_len) {
@@ -777,10 +886,21 @@ i32 ciph_rc4(u8 *plaintext, u32 pt_len, u8 *key, u32 key_len, u8 **ciphertext, u
 }
 
 int main() {
-    u8 pt[] = "zupa.";
-    u8 *digest = NULL;
-    hash_sha512_224(pt, strlen(pt), &digest);
-    printf("digest: ");
-    hexdump(digest, 28);
-    free(digest);
+    u8 pt[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    u8 key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
+    u8 *ct = NULL;
+
+    printf("plaintext:\t");
+    hexdump(pt, 16);
+
+    printf("key:\t\t");
+    hexdump(key, 32);
+    printf("\n");
+
+    enc_aes256(pt, key, &ct);
+    printf("ciphertext:\t");
+    hexdump(ct, 16);
+
+    free(ct);
 }
