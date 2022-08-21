@@ -837,6 +837,102 @@ i32 enc_aes256(u8 *plaintext, u8 *key, u8 **ciphertext) {
     return CRP_OK;
 }
 
+// prototype (TODO: optimize), single block aes256 decryption
+// ctlen: 16, keylen: 32, ptlen: 16
+i32 dec_aes256(u8 *ciphertext, u8 *key, u8 **plaintext) {
+    const u8 r = 15, n = 8;
+    if (!*plaintext) {
+        *plaintext = malloc(16);
+        if (!*plaintext)
+            return CRP_ERR;
+    }
+
+    // sbox and inv_sbox generation by bruteforce
+    u8 sbox[256];
+    u8 inv_sbox[256];
+    for (u32 i = 0; i < 256; ++i) {
+        for (u32 j = 0; j < 256; ++j) {
+            u8 prod = gf_mul(i, j);
+            if (prod == 1) {
+                u8 t = j;
+                t ^= LEFTROTATE8(t, 1) ^ LEFTROTATE8(t, 2) ^ LEFTROTATE8(t, 3) ^ LEFTROTATE8(t, 4) ^ 0x63;
+                sbox[i] = t;
+                inv_sbox[t] = i;
+                break;
+            }
+        }
+    }
+    sbox[0] = 0x63;
+    inv_sbox[0] = 0x52;
+
+    // key expansion
+    u8 rc = 1;
+    u32 exp_key[r * 4];
+    memcpy(exp_key, key, n * 4);
+    for (u32 i = n; i < r * 4; ++i) {
+        u32 t = exp_key[i - 1];
+        if (i % n == 0) {
+            u32 rcon = rc;
+            t = RIGHTROTATE32(exp_key[i - 1], 8);
+            t = (sbox[((t & 0xff000000) >> 24)] << 24) | (sbox[((t & 0xff0000) >> 16)] << 16) | (sbox[((t & 0xff00) >> 8)] << 8) | sbox[t & 0xff];
+            t ^= rcon;
+            rc = (rc << 1) ^ (rc >= 0x80 ? 0x1b : 0);
+        }
+        else if (n > 6 && i % n == 4)
+            t = (sbox[((exp_key[i-1] & 0xff000000) >> 24)] << 24) | (sbox[((exp_key[i-1] & 0xff0000) >> 16)] << 16) | (sbox[((exp_key[i-1] & 0xff00) >> 8)] << 8) | sbox[exp_key[i-1] & 0xff];
+        exp_key[i] = exp_key[i - n] ^ t;
+    }
+
+    // final round
+    // addroundkey
+    for (u32 i = 0; i < 16; ++i)
+        (*plaintext)[i] = ciphertext[i] ^ ((u8*)exp_key)[(r - 1) * 16 + i];
+    // inv_shiftrows
+    u8 temp[16];
+    memcpy(temp, (*plaintext), 16);
+    for (u32 j = 0; j < 16; ++j) {
+        (*plaintext)[j] = temp[(16 - j * 3) % 16];
+    }
+    // inv_subbytes
+    for (u32 j = 0; j < 16; ++j) {
+        (*plaintext)[j] = inv_sbox[(*plaintext)[j]];
+    }
+
+    // main rounds
+    for (i32 i = r - 3; i >= 0; --i) {
+        // addroundkey
+        for (u32 j = 0; j < 16; ++j)
+            (*plaintext)[j] ^= ((u8*)exp_key)[(i + 1) * 16 + j];
+
+        // inv_mixcolumns (TODO: very inefficient. optimize (lookup table))
+        for (u32 j = 0; j < 4; ++j) {
+            u8 *r = (*plaintext) + j * 4;
+            u8 a[4];
+            memcpy(a, r, 4);
+            r[0] = gf_mul(a[0], 14) ^ gf_mul(a[1], 11) ^ gf_mul(a[2], 13) ^ gf_mul(a[3], 9);
+            r[1] = gf_mul(a[0], 9) ^ gf_mul(a[1], 14) ^ gf_mul(a[2], 11) ^ gf_mul(a[3], 13);
+            r[2] = gf_mul(a[0], 13) ^ gf_mul(a[1], 9) ^ gf_mul(a[2], 14) ^ gf_mul(a[3], 11);
+            r[3] = gf_mul(a[0], 11) ^ gf_mul(a[1], 13) ^ gf_mul(a[2], 9) ^ gf_mul(a[3], 14);
+        }
+        // inv_shiftrows
+        u8 temp1[16];
+        memcpy(temp1, (*plaintext), 16);
+        for (u32 j = 0; j < 16; ++j) {
+            (*plaintext)[j] = temp1[(16 - j * 3) % 16];
+        }
+        // inv_subbytes
+        for (u32 j = 0; j < 16; ++j) {
+            (*plaintext)[j] = inv_sbox[(*plaintext)[j]];
+        }
+    }
+
+    // initial round
+    for (u32 j = 0; j < 16; ++j)
+        (*plaintext)[j] ^= ((u8*)exp_key)[j];
+
+    return CRP_OK;
+}
+
 // to decrypt swap ciphertext with plaintext
 // keylen: messagelen, ciphertextlen: messagelen
 i32 ciph_otp(u8 *plaintext, u32 pt_len, u8 *key, u8 **ciphertext, u32 *ct_len) {
@@ -896,16 +992,21 @@ int main() {
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
     u8 *ct = NULL;
 
-    printf("plaintext:\t");
-    hexdump(pt, 16);
-
-    printf("key:\t\t");
+    printf("key:\t\t\t");
     hexdump(key, 32);
     printf("\n");
 
+    printf("plaintext:\t\t");
+    hexdump(pt, 16);
+
     enc_aes256(pt, key, &ct);
-    printf("ciphertext:\t");
+    printf("ciphertext:\t\t");
     hexdump(ct, 16);
+
+    u8 *pt_t = pt;
+    dec_aes256(ct, key, &pt_t);
+    printf("decrypted ciphertext:\t");
+    hexdump(pt, 16);
 
     free(ct);
 }
