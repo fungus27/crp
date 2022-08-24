@@ -62,6 +62,18 @@ i32 rand_bytes(u8 *out, u32 size) {
     return CRP_OK;
 }
 
+u8 gf_mul(u8 a, u8 b) {
+    u8 prod = 0;
+    for (u32 k = 0; k < 8; ++k) {
+        prod ^= (b & 1) ? a : 0;
+        b >>= 1;
+        u8 carry = a & 0x80;
+        a <<= 1;
+        a ^= carry ? 0x1b : 0;
+    }
+    return prod;
+}
+
 // TODO: make hash function work on large input
 
 // digestlen: 16
@@ -740,18 +752,11 @@ i32 enc_aes256(u8 *plaintext, u8 *key, u8 **ciphertext) {
     u8 sbox[256];
     for (u32 i = 0; i < 256; ++i) {
         for (u32 j = 0; j < 256; ++j) {
-            u8 prod = 0, a = i, b = j;
-            for (u32 k = 0; k < 8; ++k) {
-                prod ^= (b & 1) ? a : 0;
-                b >>= 1;
-                u8 carry = a & 0x80;
-                a <<= 1;
-                a ^= carry ? 0x1b : 0;
-            }
+            u8 prod = gf_mul(i, j);
             if (prod == 1) {
-                b = j;
-                b ^= LEFTROTATE8(b, 1) ^ LEFTROTATE8(b, 2) ^ LEFTROTATE8(b, 3) ^ LEFTROTATE8(b, 4) ^ 0x63;
-                sbox[i] = b;
+                u8 t = j;
+                t ^= LEFTROTATE8(t, 1) ^ LEFTROTATE8(t, 2) ^ LEFTROTATE8(t, 3) ^ LEFTROTATE8(t, 4) ^ 0x63;
+                sbox[i] = t;
                 break;
             }
         }
