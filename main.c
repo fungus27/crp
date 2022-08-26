@@ -803,6 +803,46 @@ i32 encrypt_final(ENC_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
     return CRP_OK;
 }
 
+i32 enc_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
+    const u8 r = 15, n = 8; // TODO: implement other key sizes for aes
+    memcpy(state, iv, 16);
+
+    // sbox generation by bruteforce (TODO: implement more efficient way of generation or just hardcode the table in)
+    u8 *sbox = state + 16;
+    for (u32 i = 0; i < 256; ++i) {
+        for (u32 j = 0; j < 256; ++j) {
+            u8 prod = gf_mul(i, j);
+            if (prod == 1) {
+                u8 t = j;
+                t ^= LEFTROTATE8(t, 1) ^ LEFTROTATE8(t, 2) ^ LEFTROTATE8(t, 3) ^ LEFTROTATE8(t, 4) ^ 0x63;
+                sbox[i] = t;
+                break;
+            }
+        }
+    }
+    sbox[0] = 0x63;
+
+    // key expansion
+    u8 rc = 1;
+    u32 *exp_key = (u32*)(state + 16 + 256);
+    memcpy(exp_key, key, n * 4);
+    for (u32 i = n; i < r * 4; ++i) {
+        u32 t = exp_key[i - 1];
+        if (i % n == 0) {
+            u32 rcon = rc;
+            t = RIGHTROTATE32(exp_key[i - 1], 8);
+            t = (sbox[((t & 0xff000000) >> 24)] << 24) | (sbox[((t & 0xff0000) >> 16)] << 16) | (sbox[((t & 0xff00) >> 8)] << 8) | sbox[t & 0xff];
+            t ^= rcon;
+            rc = (rc << 1) ^ (rc >= 0x80 ? 0x1b : 0);
+        }
+        else if (n > 6 && i % n == 4)
+            t = (sbox[((exp_key[i-1] & 0xff000000) >> 24)] << 24) | (sbox[((exp_key[i-1] & 0xff0000) >> 16)] << 16) | (sbox[((exp_key[i-1] & 0xff00) >> 8)] << 8) | sbox[exp_key[i-1] & 0xff];
+        exp_key[i] = exp_key[i - n] ^ t;
+    }
+
+    return CRP_OK;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // prototype (TODO: optimize), single block aes256 encryption
