@@ -27,7 +27,6 @@ typedef int32_t i32;
 typedef struct CIPHER {
     u32 block_size; // block_size = 0 for stream ciphers
     u32 state_size;
-    u8 *state;
     i32 (*state_init)(u8 *key, u8 *iv, u8 *state);
     i32 (*update_cipher)(u8 *plaintext, u32 pt_len, u8 *ciphertext);
     i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
@@ -36,6 +35,7 @@ typedef struct CIPHER {
 typedef struct CIPH_CTX {
     u64 pt_len;
     CIPHER ciph;
+    u8 *state;
 } CIPH_CTX;
 
 void hexdump(u8 *in, u32 len) {
