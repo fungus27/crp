@@ -908,6 +908,18 @@ i32 pad_pkcs(u8 *block, u32 pt_size, u32 block_size) {
     return CRP_OK;
 }
 
+ENC_CIPHER enc_ecb_aes256() {
+    ENC_CIPHER ciph = {
+        .block_size = 16,
+        .key_size = 32, .iv_size = 0,
+        .state_size = 496,
+        .state_init = enc_ecb_aes256_init,
+        .encrypt_update = enc_ecb_aes256_update,
+        .padder = pad_pkcs
+    };
+    return ciph;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // prototype (TODO: optimize), single block aes256 encryption
