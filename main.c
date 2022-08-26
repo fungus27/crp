@@ -26,6 +26,7 @@ typedef int32_t i32;
 
 typedef struct CIPHER {
     u32 block_size; // block_size = 0 for stream ciphers
+    u32 key_size, iv_size;
     u32 state_size;
     i32 (*state_init)(u8 *key, u8 *iv, u8 *state);
     i32 (*update_cipher)(u8 *plaintext, u32 pt_len, u8 *ciphertext);
