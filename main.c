@@ -903,6 +903,11 @@ i32 enc_ecb_aes256_update(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext) 
     return CRP_OK;
 }
 
+i32 pad_pkcs(u8 *block, u32 pt_size, u32 block_size) {
+    memset(block + pt_size, block_size - pt_size, block_size - pt_size);
+    return CRP_OK;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // prototype (TODO: optimize), single block aes256 encryption
