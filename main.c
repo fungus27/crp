@@ -12,6 +12,9 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 typedef int32_t i32;
 
+#define MAX(a, b) ( ((a) > (b)) ? (a) : (b) )
+#define MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
+
 #define LEFTROTATE8(n, d) ( ( (n) << (d) ) | ( (n) >> (8 - (d)) ) )
 #define RIGHTROTATE8(n, d) ( ( (n) >> (d) ) | ( (n) << (8 - (d)) ) )
 
@@ -37,6 +40,8 @@ typedef struct CIPH_CTX {
     u64 pt_len;
     CIPHER ciph;
     u8 *state;
+    u32 queue_size;
+    u8 *queue_buf;
 } CIPH_CTX;
 
 void hexdump(u8 *in, u32 len) {
@@ -757,13 +762,32 @@ i32 ciph_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     ctx->state = malloc(cipher.state_size);
     if (!ctx->state)
         return CRP_ERR;
+    ctx->queue_buf = cipher.block_size ? malloc(cipher.block_size) : NULL;
+    ctx->queue_size = 0;
+    if (!ctx->queue_buf)
+        return CRP_ERR;
     return cipher.state_init(key, iv, ctx->state);
 }
 
 i32 ciph_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len) {
-    if (!ctx->ciph.cipher_update(plaintext, pt_len, ciphertext))
-        return CRP_ERR;
-    *ct_len = (ctx->ciph.block_size) ? ctx->ciph.block_size : pt_len;
+    *ct_len = 0;
+    if (ctx->ciph.block_size) {
+        while (pt_len >= ctx->ciph.block_size) {
+            memcpy(ctx->queue_buf + ctx->queue_size, plaintext, ctx->ciph.block_size - ctx->queue_size);
+            if (!ctx->ciph.cipher_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+                    return CRP_ERR;
+            plaintext += ctx->ciph.block_size - ctx->queue_size;
+            pt_len -= ctx->ciph.block_size - ctx->queue_size;
+            ciphertext += ctx->ciph.block_size;
+            *ct_len += ctx->ciph.block_size;
+            ctx->queue_size = 0;
+        }
+        memcpy(ctx->queue_buf + ctx->queue_size, plaintext, pt_len);
+        ctx->queue_size = pt_len;
+    }
+    else {
+        // TODO: fill
+    }
     return CRP_OK;
 }
 
