@@ -32,7 +32,7 @@ typedef struct ENC_CIPHER {
     u32 key_size, iv_size;
     u32 state_size;
     i32 (*state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*encrypt_update)(u8 *plaintext, u32 pt_len, u8 *ciphertext);
+    i32 (*encrypt_update)(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext);
     i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
 } ENC_CIPHER;
 
@@ -774,7 +774,7 @@ i32 encrypt_update(ENC_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 
     if (ctx->ciph.block_size) {
         while (pt_len >= ctx->ciph.block_size) {
             memcpy(ctx->queue_buf + ctx->queue_size, plaintext, ctx->ciph.block_size - ctx->queue_size);
-            if (!ctx->ciph.encrypt_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+            if (!ctx->ciph.encrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, ciphertext))
                     return CRP_ERR;
             plaintext += ctx->ciph.block_size - ctx->queue_size;
             pt_len -= ctx->ciph.block_size - ctx->queue_size;
@@ -794,7 +794,7 @@ i32 encrypt_update(ENC_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 
 i32 encrypt_final(ENC_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
     if (!ctx->ciph.padder(ctx->queue_buf, ctx->queue_size, ctx->ciph.block_size))
         return CRP_ERR;
-    if (!ctx->ciph.encrypt_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+    if (!ctx->ciph.encrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, ciphertext))
         return CRP_ERR;
     *ct_len = ctx->ciph.block_size;
     free(ctx->state);
@@ -805,10 +805,9 @@ i32 encrypt_final(ENC_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
 
 i32 enc_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
     const u8 r = 15, n = 8; // TODO: implement other key sizes for aes
-    memcpy(state, iv, 16);
 
     // sbox generation by bruteforce (TODO: implement more efficient way of generation or just hardcode the table in)
-    u8 *sbox = state + 16;
+    u8 *sbox = state;
     for (u32 i = 0; i < 256; ++i) {
         for (u32 j = 0; j < 256; ++j) {
             u8 prod = gf_mul(i, j);
@@ -824,7 +823,7 @@ i32 enc_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
 
     // key expansion
     u8 rc = 1;
-    u32 *exp_key = (u32*)(state + 16 + 256);
+    u32 *exp_key = (u32*)(state + 256);
     memcpy(exp_key, key, n * 4);
     for (u32 i = n; i < r * 4; ++i) {
         u32 t = exp_key[i - 1];
@@ -839,6 +838,67 @@ i32 enc_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
             t = (sbox[((exp_key[i-1] & 0xff000000) >> 24)] << 24) | (sbox[((exp_key[i-1] & 0xff0000) >> 16)] << 16) | (sbox[((exp_key[i-1] & 0xff00) >> 8)] << 8) | sbox[exp_key[i-1] & 0xff];
         exp_key[i] = exp_key[i - n] ^ t;
     }
+
+    return CRP_OK;
+}
+
+i32 enc_ecb_aes256_update(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext) {
+    const u8 r = 15, n = 8; // TODO: implement other key sizes for aes
+    u8 *sbox = state;
+    u32 *exp_key = (u32*)(state + 256);
+
+    // initial round
+    for (u32 i = 0; i < 16; ++i)
+        ciphertext[i] = plaintext[i] ^ ((u8*)exp_key)[i];
+
+    // main rounds
+    for (u32 i = 0; i < r - 2; ++i) {
+        // subbytes
+        for (u32 j = 0; j < 16; ++j) {
+            ciphertext[j] = sbox[ciphertext[j]];
+        }
+        // shiftrows
+        u8 temp[16];
+        memcpy(temp, ciphertext, 16);
+        for (u32 j = 0; j < 16; ++j) {
+            ciphertext[j] = temp[(j * 5) % 16];
+        }
+        // mixcolumns
+        for (u32 j = 0; j < 4; ++j) {
+            u8 *r = ciphertext + j * 4;
+            u8 a[4];
+            u8 b[4];
+            u8 h;
+            for (u8 c = 0; c < 4; ++c) {
+                a[c] = r[c];
+                h = (r[c] >> 7) & 1;
+                b[c] = r[c] << 1;
+                b[c] ^= h * 0x1b;
+            }
+            r[0] = b[0] ^ a[3] ^ a[2] ^ b[1] ^ a[1];
+            r[1] = b[1] ^ a[0] ^ a[3] ^ b[2] ^ a[2];
+            r[2] = b[2] ^ a[1] ^ a[0] ^ b[3] ^ a[3];
+            r[3] = b[3] ^ a[2] ^ a[1] ^ b[0] ^ a[0];
+        }
+        // addroundkey
+        for (u32 j = 0; j < 16; ++j)
+            ciphertext[j] ^= ((u8*)exp_key)[(i + 1) * 16 + j];
+    }
+
+    // final round
+    // subbytes
+    for (u32 j = 0; j < 16; ++j) {
+        ciphertext[j] = sbox[ciphertext[j]];
+    }
+    // shiftrows
+    u8 temp[16];
+    memcpy(temp, ciphertext, 16);
+    for (u32 j = 0; j < 16; ++j) {
+        ciphertext[j] = temp[(j * 5) % 16];
+    }
+    // addroundkey
+    for (u32 j = 0; j < 16; ++j)
+        ciphertext[j] ^= ((u8*)exp_key)[(r - 1) * 16 + j];
 
     return CRP_OK;
 }
