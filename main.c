@@ -1174,7 +1174,8 @@ int main() {
     u8 pt[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
     u8 key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
-    u8 *ct = NULL;
+    u8 ct[16];
+    u32 ct_len, final_ct_len;
 
     printf("key:\t\t\t");
     hexdump(key, 32);
@@ -1182,15 +1183,22 @@ int main() {
 
     printf("plaintext:\t\t");
     hexdump(pt, 16);
+    
+    ENC_CTX ctx;
+    encrypt_init(&ctx, enc_ecb_aes256(), key, NULL);
+    encrypt_update(&ctx, pt, (u32)sizeof(pt), ct, &ct_len);
+    final_ct_len = ct_len;
+    encrypt_final(&ctx, ct + ct_len, &ct_len);
+    final_ct_len += ct_len;
 
-    enc_aes256(pt, key, &ct);
+    printf("ciphertext lenght: %u\n", final_ct_len);
     printf("ciphertext:\t\t");
-    hexdump(ct, 16);
+    hexdump(ct, final_ct_len);
 
-    u8 *pt_t = pt;
-    dec_aes256(ct, key, &pt_t);
-    printf("decrypted ciphertext:\t");
-    hexdump(pt, 16);
+    //u8 *pt_t = pt;
+    //dec_aes256(ct, key, &pt_t);
+    //printf("decrypted ciphertext:\t");
+    //hexdump(pt, 16);
 
-    free(ct);
+    //free(ct);
 }
