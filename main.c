@@ -27,22 +27,22 @@ typedef int32_t i32;
 #define SWAPENDIAN64(n) ( ( ( (n) & 0xff ) << 56 ) | ( ( (n) & 0xff00 ) << 40 ) | ( ( (n) & 0xff0000 ) << 24 ) | ( ( (n) & 0xff000000 ) << 8 ) \
         | ( ( (n) & 0xff00000000 ) >> 8 ) | ( ( (n) & 0xff0000000000 ) >> 24 ) | ( ( (n) & 0xff000000000000 ) >> 40) | ( ( (n) & 0xff00000000000000 ) >> 56 ) )
 
-typedef struct CIPHER {
+typedef struct ENC_CIPHER {
     u32 block_size; // block_size = 0 for stream ciphers
     u32 key_size, iv_size;
     u32 state_size;
     i32 (*state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*cipher_update)(u8 *plaintext, u32 pt_len, u8 *ciphertext);
+    i32 (*encrypt_update)(u8 *plaintext, u32 pt_len, u8 *ciphertext);
     i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
-} CIPHER;
+} ENC_CIPHER;
 
-typedef struct CIPH_CTX {
+typedef struct ENC_CTX {
     u64 pt_len;
-    CIPHER ciph;
+    ENC_CIPHER ciph;
     u8 *state;
     u32 queue_size;
     u8 *queue_buf;
-} CIPH_CTX;
+} ENC_CTX;
 
 void hexdump(u8 *in, u32 len) {
     for (u32 i = 0; i < len; ++i)
@@ -756,7 +756,7 @@ i32 hash_sha512_256(u8 *plaintext, u32 pt_len, u8 **digest) {
     return CRP_OK;
 }
 
-i32 ciph_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
+i32 encrypt_init(ENC_CTX *ctx, ENC_CIPHER cipher, u8 *key, u8 *iv) {
     ctx->ciph = cipher;
     ctx->pt_len = 0;
     ctx->state = malloc(cipher.state_size);
@@ -769,12 +769,12 @@ i32 ciph_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     return cipher.state_init(key, iv, ctx->state);
 }
 
-i32 ciph_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len) {
+i32 encrypt_update(ENC_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len) {
     *ct_len = 0;
     if (ctx->ciph.block_size) {
         while (pt_len >= ctx->ciph.block_size) {
             memcpy(ctx->queue_buf + ctx->queue_size, plaintext, ctx->ciph.block_size - ctx->queue_size);
-            if (!ctx->ciph.cipher_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+            if (!ctx->ciph.encrypt_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
                     return CRP_ERR;
             plaintext += ctx->ciph.block_size - ctx->queue_size;
             pt_len -= ctx->ciph.block_size - ctx->queue_size;
@@ -791,10 +791,10 @@ i32 ciph_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *c
     return CRP_OK;
 }
 
-i32 ciph_final(CIPH_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
+i32 encrypt_final(ENC_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
     if (!ctx->ciph.padder(ctx->queue_buf, ctx->queue_size, ctx->ciph.block_size))
         return CRP_ERR;
-    if (!ctx->ciph.cipher_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+    if (!ctx->ciph.encrypt_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
         return CRP_ERR;
     *ct_len = ctx->ciph.block_size;
     free(ctx->state);
