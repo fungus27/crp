@@ -751,6 +751,15 @@ i32 hash_sha512_256(u8 *plaintext, u32 pt_len, u8 **digest) {
     return CRP_OK;
 }
 
+i32 ciph_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
+    ctx->ciph = cipher;
+    ctx->pt_len = 0;
+    ctx->state = malloc(cipher.state_size);
+    if (!ctx->state)
+        return CRP_ERR;
+    return cipher.state_init(key, iv, ctx->state);
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // prototype (TODO: optimize), single block aes256 encryption
