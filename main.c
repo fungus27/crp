@@ -760,6 +760,13 @@ i32 ciph_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     return cipher.state_init(key, iv, ctx->state);
 }
 
+i32 ciph_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len) {
+    if (!ctx->ciph.cipher_update(plaintext, pt_len, ciphertext))
+        return CRP_ERR;
+    *ct_len = (ctx->ciph.block_size) ? ctx->ciph.block_size : pt_len;
+    return CRP_OK;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // prototype (TODO: optimize), single block aes256 encryption
