@@ -27,22 +27,28 @@ typedef int32_t i32;
 #define SWAPENDIAN64(n) ( ( ( (n) & 0xff ) << 56 ) | ( ( (n) & 0xff00 ) << 40 ) | ( ( (n) & 0xff0000 ) << 24 ) | ( ( (n) & 0xff000000 ) << 8 ) \
         | ( ( (n) & 0xff00000000 ) >> 8 ) | ( ( (n) & 0xff0000000000 ) >> 24 ) | ( ( (n) & 0xff000000000000 ) >> 40) | ( ( (n) & 0xff00000000000000 ) >> 56 ) )
 
-typedef struct ENC_CIPHER {
+typedef struct CIPHER {
     u32 block_size; // block_size = 0 for stream ciphers
     u32 key_size, iv_size;
-    u32 state_size;
-    i32 (*state_init)(u8 *key, u8 *iv, u8 *state);
+
+    u32 enc_state_size;
+    i32 (*enc_state_init)(u8 *key, u8 *iv, u8 *state);
     i32 (*encrypt_update)(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext);
     i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
-} ENC_CIPHER;
 
-typedef struct ENC_CTX {
+    u32 dec_state_size;
+    i32 (*dec_state_init)(u8 *key, u8 *iv, u8 *state);
+    i32 (*decrypt_update)(u8 *state, u8 *ciphertext, u32 ct_len, u8 *plaintext);
+    i32 (*unpadder)(u8 *block, u32 block_size, u32 *cutoff);
+} CIPHER;
+
+typedef struct CRP_CTX {
     u64 pt_len;
-    ENC_CIPHER ciph;
+    CIPHER ciph;
     u8 *state;
     u32 queue_size;
     u8 *queue_buf;
-} ENC_CTX;
+} CRP_CTX;
 
 void hexdump(u8 *in, u32 len) {
     for (u32 i = 0; i < len; ++i)
@@ -756,20 +762,20 @@ i32 hash_sha512_256(u8 *plaintext, u32 pt_len, u8 **digest) {
     return CRP_OK;
 }
 
-i32 encrypt_init(ENC_CTX *ctx, ENC_CIPHER cipher, u8 *key, u8 *iv) {
+i32 encrypt_init(CRP_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     ctx->ciph = cipher;
     ctx->pt_len = 0;
-    ctx->state = malloc(cipher.state_size);
+    ctx->state = malloc(cipher.enc_state_size);
     if (!ctx->state)
         return CRP_ERR;
     ctx->queue_buf = cipher.block_size ? malloc(cipher.block_size) : NULL;
     ctx->queue_size = 0;
     if (!ctx->queue_buf)
         return CRP_ERR;
-    return cipher.state_init(key, iv, ctx->state);
+    return cipher.enc_state_init(key, iv, ctx->state);
 }
 
-i32 encrypt_update(ENC_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len) {
+i32 encrypt_update(CRP_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len) {
     *ct_len = 0;
     if (ctx->ciph.block_size) {
         while (pt_len >= ctx->ciph.block_size) {
@@ -791,7 +797,7 @@ i32 encrypt_update(ENC_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 
     return CRP_OK;
 }
 
-i32 encrypt_final(ENC_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
+i32 encrypt_final(CRP_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
     if (!ctx->ciph.padder(ctx->queue_buf, ctx->queue_size, ctx->ciph.block_size))
         return CRP_ERR;
     if (!ctx->ciph.encrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, ciphertext))
@@ -908,12 +914,12 @@ i32 pad_pkcs(u8 *block, u32 pt_size, u32 block_size) {
     return CRP_OK;
 }
 
-ENC_CIPHER enc_ecb_aes256() {
-    ENC_CIPHER ciph = {
+CIPHER enc_ecb_aes256() {
+    CIPHER ciph = {
         .block_size = 16,
         .key_size = 32, .iv_size = 0,
-        .state_size = 496,
-        .state_init = enc_ecb_aes256_init,
+        .enc_state_size = 496,
+        .enc_state_init = enc_ecb_aes256_init,
         .encrypt_update = enc_ecb_aes256_update,
         .padder = pad_pkcs
     };
@@ -1184,7 +1190,7 @@ int main() {
     printf("plaintext:\t\t");
     hexdump(pt, 16);
     
-    ENC_CTX ctx;
+    CRP_CTX ctx;
     encrypt_init(&ctx, enc_ecb_aes256(), key, NULL);
     encrypt_update(&ctx, pt, (u32)sizeof(pt), ct, &ct_len);
     final_ct_len = ct_len;
@@ -1194,6 +1200,8 @@ int main() {
     printf("ciphertext lenght: %u\n", final_ct_len);
     printf("ciphertext:\t\t");
     hexdump(ct, final_ct_len);
+
+    // TODO: implement decryption
 
     //u8 *pt_t = pt;
     //dec_aes256(ct, key, &pt_t);
