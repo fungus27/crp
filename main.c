@@ -25,11 +25,11 @@ typedef int32_t i32;
         | ( ( (n) & 0xff00000000 ) >> 8 ) | ( ( (n) & 0xff0000000000 ) >> 24 ) | ( ( (n) & 0xff000000000000 ) >> 40) | ( ( (n) & 0xff00000000000000 ) >> 56 ) )
 
 typedef struct CIPHER {
-    u32 block_size; // block_size = 1 for stream ciphers
+    u32 block_size; // block_size = 0 for stream ciphers
     u32 state_size;
     u8 *state;
     i32 (*state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*update_cipher)(u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *ct_len);
+    i32 (*update_cipher)(u8 *plaintext, u32 pt_len, u8 *ciphertext);
 } CIPHER;
 
 void hexdump(u8 *in, u32 len) {
