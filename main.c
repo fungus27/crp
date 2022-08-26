@@ -33,6 +33,11 @@ typedef struct CIPHER {
     i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
 } CIPHER;
 
+typedef struct CIPH_CTX {
+    u64 pt_len;
+    CIPHER ciph;
+} CIPH_CTX;
+
 void hexdump(u8 *in, u32 len) {
     for (u32 i = 0; i < len; ++i)
         printf("%.2hhx", in[i]);
