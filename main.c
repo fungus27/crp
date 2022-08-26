@@ -791,6 +791,18 @@ i32 ciph_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32 *c
     return CRP_OK;
 }
 
+i32 ciph_final(CIPH_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
+    if (!ctx->ciph.padder(ctx->queue_buf, ctx->queue_size, ctx->ciph.block_size))
+        return CRP_ERR;
+    if (!ctx->ciph.cipher_update(ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+        return CRP_ERR;
+    *ct_len = ctx->ciph.block_size;
+    free(ctx->state);
+    if (ctx->queue_buf)
+        free(ctx->queue_buf);
+    return CRP_OK;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // prototype (TODO: optimize), single block aes256 encryption
