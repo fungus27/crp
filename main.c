@@ -809,6 +809,54 @@ i32 encrypt_final(CRP_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
     return CRP_OK;
 }
 
+i32 decrypt_init(CRP_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
+    ctx->ciph = cipher;
+    ctx->state = malloc(cipher.dec_state_size);
+    if (!ctx->state)
+        return CRP_ERR;
+    ctx->queue_buf = cipher.block_size ? malloc(cipher.block_size) : NULL;
+    ctx->queue_size = 0;
+    if (!ctx->queue_buf)
+        return CRP_ERR;
+    return cipher.dec_state_init(key, iv, ctx->state);
+}
+
+i32 decrypt_update(CRP_CTX *ctx, u8 *ciphertext, u32 ct_len, u8 *plaintext, i32 *pt_len) {
+    *pt_len = 0;
+    if (ctx->ciph.block_size) {
+        while (ct_len > ctx->ciph.block_size) {
+            memcpy(ctx->queue_buf + ctx->queue_size, ciphertext, ctx->ciph.block_size - ctx->queue_size);
+            if (!ctx->ciph.decrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, plaintext))
+                    return CRP_ERR;
+            ciphertext += ctx->ciph.block_size - ctx->queue_size;
+            ct_len -= ctx->ciph.block_size - ctx->queue_size;
+            plaintext += ctx->ciph.block_size;
+            *pt_len += ctx->ciph.block_size;
+            ctx->queue_size = 0;
+        }
+        memcpy(ctx->queue_buf + ctx->queue_size, ciphertext, ct_len);
+        ctx->queue_size = ct_len;
+    }
+    else {
+        // TODO: fill
+    }
+    return CRP_OK;
+}
+
+i32 decrypt_final(CRP_CTX *ctx, u8 *plaintext, i32 *pt_len) {
+    u32 cutoff;
+    if (!ctx->ciph.decrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, plaintext))
+        return CRP_ERR;
+    *pt_len = ctx->ciph.block_size;
+    if (!ctx->ciph.unpadder(plaintext, ctx->ciph.block_size, &cutoff))
+        return CRP_ERR;
+    *pt_len -= cutoff;
+    free(ctx->state);
+    if (ctx->queue_buf)
+        free(ctx->queue_buf);
+    return CRP_OK;
+}
+
 i32 enc_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
     const u8 r = 15, n = 8; // TODO: implement other key sizes for aes
 
@@ -826,6 +874,48 @@ i32 enc_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
         }
     }
     sbox[0] = 0x63;
+
+    // key expansion
+    u8 rc = 1;
+    u32 *exp_key = (u32*)(state + 256);
+    memcpy(exp_key, key, n * 4);
+    for (u32 i = n; i < r * 4; ++i) {
+        u32 t = exp_key[i - 1];
+        if (i % n == 0) {
+            u32 rcon = rc;
+            t = RIGHTROTATE32(exp_key[i - 1], 8);
+            t = (sbox[((t & 0xff000000) >> 24)] << 24) | (sbox[((t & 0xff0000) >> 16)] << 16) | (sbox[((t & 0xff00) >> 8)] << 8) | sbox[t & 0xff];
+            t ^= rcon;
+            rc = (rc << 1) ^ (rc >= 0x80 ? 0x1b : 0);
+        }
+        else if (n > 6 && i % n == 4)
+            t = (sbox[((exp_key[i-1] & 0xff000000) >> 24)] << 24) | (sbox[((exp_key[i-1] & 0xff0000) >> 16)] << 16) | (sbox[((exp_key[i-1] & 0xff00) >> 8)] << 8) | sbox[exp_key[i-1] & 0xff];
+        exp_key[i] = exp_key[i - n] ^ t;
+    }
+
+    return CRP_OK;
+}
+
+i32 dec_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
+    const u8 r = 15, n = 8;
+
+    // sbox and inv_sbox generation by bruteforce
+    u8 sbox[256];
+    u8 *inv_sbox = state;
+    for (u32 i = 0; i < 256; ++i) {
+        for (u32 j = 0; j < 256; ++j) {
+            u8 prod = gf_mul(i, j);
+            if (prod == 1) {
+                u8 t = j;
+                t ^= LEFTROTATE8(t, 1) ^ LEFTROTATE8(t, 2) ^ LEFTROTATE8(t, 3) ^ LEFTROTATE8(t, 4) ^ 0x63;
+                sbox[i] = t;
+                inv_sbox[t] = i;
+                break;
+            }
+        }
+    }
+    sbox[0] = 0x63;
+    inv_sbox[0] = 0x52;
 
     // key expansion
     u8 rc = 1;
@@ -909,19 +999,84 @@ i32 enc_ecb_aes256_update(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext) 
     return CRP_OK;
 }
 
+i32 dec_ecb_aes256_update(u8 *state, u8 *ciphertext, u32 ct_len, u8 *plaintext) {
+    const u8 r = 15, n = 8;
+    u8 *inv_sbox = state;
+    u32 *exp_key = (u32*)(state + 256);
+
+    // final round
+    // addroundkey
+    for (u32 i = 0; i < 16; ++i)
+        plaintext[i] = ciphertext[i] ^ ((u8*)exp_key)[(r - 1) * 16 + i];
+    // inv_shiftrows
+    u8 temp[16];
+    memcpy(temp, plaintext, 16);
+    for (u32 j = 0; j < 16; ++j) {
+        plaintext[j] = temp[(16 - j * 3) % 16];
+    }
+    // inv_subbytes
+    for (u32 j = 0; j < 16; ++j) {
+        plaintext[j] = inv_sbox[plaintext[j]];
+    }
+
+    // main rounds
+    for (i32 i = r - 3; i >= 0; --i) {
+        // addroundkey
+        for (u32 j = 0; j < 16; ++j)
+            plaintext[j] ^= ((u8*)exp_key)[(i + 1) * 16 + j];
+        // inv_mixcolumns (TODO: very inefficient. optimize (lookup table))
+        for (u32 j = 0; j < 4; ++j) {
+            u8 *r = plaintext + j * 4;
+            u8 a[4];
+            memcpy(a, r, 4);
+            r[0] = gf_mul(a[0], 14) ^ gf_mul(a[1], 11) ^ gf_mul(a[2], 13) ^ gf_mul(a[3], 9);
+            r[1] = gf_mul(a[0], 9) ^ gf_mul(a[1], 14) ^ gf_mul(a[2], 11) ^ gf_mul(a[3], 13);
+            r[2] = gf_mul(a[0], 13) ^ gf_mul(a[1], 9) ^ gf_mul(a[2], 14) ^ gf_mul(a[3], 11);
+            r[3] = gf_mul(a[0], 11) ^ gf_mul(a[1], 13) ^ gf_mul(a[2], 9) ^ gf_mul(a[3], 14);
+        }
+        // inv_shiftrows
+        u8 temp1[16];
+        memcpy(temp1, plaintext, 16);
+        for (u32 j = 0; j < 16; ++j) {
+            plaintext[j] = temp1[(16 - j * 3) % 16];
+        }
+        // inv_subbytes
+        for (u32 j = 0; j < 16; ++j) {
+            plaintext[j] = inv_sbox[plaintext[j]];
+        }
+    }
+
+    // initial round
+    for (u32 j = 0; j < 16; ++j)
+        plaintext[j] ^= ((u8*)exp_key)[j];
+
+    return CRP_OK;
+}
+
 i32 pad_pkcs(u8 *block, u32 pt_size, u32 block_size) {
     memset(block + pt_size, block_size - pt_size, block_size - pt_size);
     return CRP_OK;
 }
 
-CIPHER enc_ecb_aes256() {
+i32 unpad_pkcs(u8 *block, u32 block_size, u32 *cutoff) {
+    *cutoff = block[block_size - 1];
+    return CRP_OK;
+}
+
+CIPHER ecb_aes256() {
     CIPHER ciph = {
         .block_size = 16,
         .key_size = 32, .iv_size = 0,
+
         .enc_state_size = 496,
         .enc_state_init = enc_ecb_aes256_init,
         .encrypt_update = enc_ecb_aes256_update,
-        .padder = pad_pkcs
+        .padder = pad_pkcs,
+
+        .dec_state_size = 496,
+        .dec_state_init = dec_ecb_aes256_init,
+        .decrypt_update = dec_ecb_aes256_update,
+        .unpadder = unpad_pkcs,
     };
     return ciph;
 }
@@ -1093,7 +1248,6 @@ i32 dec_aes256(u8 *ciphertext, u8 *key, u8 **plaintext) {
         // addroundkey
         for (u32 j = 0; j < 16; ++j)
             (*plaintext)[j] ^= ((u8*)exp_key)[(i + 1) * 16 + j];
-
         // inv_mixcolumns (TODO: very inefficient. optimize (lookup table))
         for (u32 j = 0; j < 4; ++j) {
             u8 *r = (*plaintext) + j * 4;
@@ -1180,10 +1334,10 @@ int main() {
     u8 pt[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
     u8 key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
-    u8 ct[16];
+    u8 ct[32];
     u32 ct_len, final_ct_len;
 
-    printf("key:\t\t\t");
+    printf("\n\n\n\nkey:\t\t\t");
     hexdump(key, 32);
     printf("\n");
 
@@ -1191,7 +1345,7 @@ int main() {
     hexdump(pt, 16);
     
     CRP_CTX ctx;
-    encrypt_init(&ctx, enc_ecb_aes256(), key, NULL);
+    encrypt_init(&ctx, ecb_aes256(), key, NULL);
     encrypt_update(&ctx, pt, (u32)sizeof(pt), ct, &ct_len);
     final_ct_len = ct_len;
     encrypt_final(&ctx, ct + ct_len, &ct_len);
@@ -1201,12 +1355,16 @@ int main() {
     printf("ciphertext:\t\t");
     hexdump(ct, final_ct_len);
 
-    // TODO: implement decryption
-
-    //u8 *pt_t = pt;
-    //dec_aes256(ct, key, &pt_t);
-    //printf("decrypted ciphertext:\t");
-    //hexdump(pt, 16);
+    u8 dec_pt[32];
+    i32 pt_len, final_pt_len;
+    decrypt_init(&ctx, ecb_aes256(), key, NULL);
+    decrypt_update(&ctx, ct, (u32)sizeof(ct), dec_pt, &pt_len);
+    final_pt_len = pt_len;
+    decrypt_final(&ctx, dec_pt + pt_len, &pt_len);
+    final_pt_len += pt_len;
+    printf("decrypted ciphertext len: %i\n", final_pt_len);
+    printf("decrypted ciphertext:\t");
+    hexdump(dec_pt, 16);
 
     //free(ct);
 }
