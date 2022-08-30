@@ -915,7 +915,7 @@ i32 dec_ecb_aes256_init(u8 *key, u8 *iv, u8 *state) {
         }
     }
     sbox[0] = 0x63;
-    inv_sbox[0] = 0x52;
+    inv_sbox[0x63] = 0;
 
     // key expansion
     u8 rc = 1;
@@ -1208,7 +1208,7 @@ i32 dec_aes256(u8 *ciphertext, u8 *key, u8 **plaintext) {
         }
     }
     sbox[0] = 0x63;
-    inv_sbox[0] = 0x52;
+    inv_sbox[0x63] = 0;
 
     // key expansion
     u8 rc = 1;
