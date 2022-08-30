@@ -857,6 +857,16 @@ i32 decrypt_final(CRP_CTX *ctx, u8 *plaintext, i32 *pt_len) {
     return CRP_OK;
 }
 
+i32 pad_pkcs(u8 *block, u32 pt_size, u32 block_size) {
+    memset(block + pt_size, block_size - pt_size, block_size - pt_size);
+    return CRP_OK;
+}
+
+i32 unpad_pkcs(u8 *block, u32 block_size, u32 *cutoff) {
+    *cutoff = block[block_size - 1];
+    return CRP_OK;
+}
+
 i32 block_init_enc_aes(u8 *key, u32 r, u32 n, u8 *state) {
     // sbox generation by bruteforce (TODO: implement more efficient way of generation or just hardcode the table in)
     u8 *sbox = state;
@@ -1058,16 +1068,6 @@ i32 enc_ecb_aes256_update(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext) 
 
 i32 dec_ecb_aes256_update(u8 *state, u8 *ciphertext, u32 ct_len, u8 *plaintext) {
     return block_dec_aes(ciphertext, plaintext, state + 256, state, 15, 8);
-}
-
-i32 pad_pkcs(u8 *block, u32 pt_size, u32 block_size) {
-    memset(block + pt_size, block_size - pt_size, block_size - pt_size);
-    return CRP_OK;
-}
-
-i32 unpad_pkcs(u8 *block, u32 block_size, u32 *cutoff) {
-    *cutoff = block[block_size - 1];
-    return CRP_OK;
 }
 
 CIPHER ecb_aes256() {
