@@ -1115,23 +1115,23 @@ i32 rc4_init(u8 *key, u8 *iv, u8 *state) {
         s[i] = s[j];
         s[j] = temp;
     }
-    *(state + 256) = (u32)0;
-    *(state + 256 + 4) = (u32)0;
+    memset(state + 256, 0, 8);
     return CRP_OK;
 }
 
 i32 enc_rc4_update(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext) {
     u8 *s = state;
-    u32 k, i = *(state + 256), j = *(state + 256 + 4);
+    u32 k;
+    u32 *i = (u32*)(state + 256), *j = (u32*)(state + 256 + 4);
     for (k = 0; k < pt_len; ++k) {
-        i = (i + 1) % 256;
-        j = (j + s[i]) % 256;
+        *i = (*i + 1) % 256;
+        *j = (*j + s[*i]) % 256;
 
-        u8 temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
+        u8 temp = s[*i];
+        s[*i] = s[*j];
+        s[*j] = temp;
 
-        ciphertext[k] = plaintext[k] ^ s[(s[i] + s[j]) % 256];
+        ciphertext[k] = plaintext[k] ^ s[(s[*i] + s[*j]) % 256];
     }
 
     return CRP_OK;
