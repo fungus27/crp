@@ -1103,6 +1103,62 @@ CIPHER ecb_aes256() {
     return ciph;
 }
 
+i32 rc4_init(u8 *key, u8 *iv, u8 *state) {
+    const u32 key_len = 16; // TODO: implement variable key lenght
+    u8 *s = state;
+    u8 i = 0, j = 0;
+    for (i = 0; i < 255; ++i)
+        s[i] = i;
+    for (i = 0; i < 255; ++i) {
+        j = (j + s[i] + key[i % key_len]) % 256;
+        u8 temp = s[i];
+        s[i] = s[j];
+        s[j] = temp;
+    }
+    *(state + 256) = (u32)0;
+    *(state + 256 + 4) = (u32)0;
+    return CRP_OK;
+}
+
+i32 enc_rc4_update(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext) {
+    u8 *s = state;
+    u32 k, i = *(state + 256), j = *(state + 256 + 4);
+    for (k = 0; k < pt_len; ++k) {
+        i = (i + 1) % 256;
+        j = (j + s[i]) % 256;
+
+        u8 temp = s[i];
+        s[i] = s[j];
+        s[j] = temp;
+
+        ciphertext[k] = plaintext[k] ^ s[(s[i] + s[j]) % 256];
+    }
+
+    return CRP_OK;
+}
+
+i32 dec_rc4_update(u8 *state, u8 *ciphertext, u32 ct_len, u8 *plaintext) {
+    return enc_rc4_update(state, ciphertext, ct_len, plaintext);
+}
+
+CIPHER rc4() {
+    CIPHER ciph = {
+        .block_size = 0,
+        .key_size = 16, .iv_size = 0,
+
+        .enc_state_size = 264,
+        .enc_state_init = rc4_init,
+        .encrypt_update = enc_rc4_update,
+        .padder = NULL,
+
+        .dec_state_size = 264,
+        .dec_state_init = rc4_init,
+        .decrypt_update = dec_rc4_update,
+        .unpadder = NULL,
+    };
+    return ciph;
+}
+
 // if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
 
 // to decrypt swap ciphertext with plaintext
@@ -1122,58 +1178,21 @@ i32 ciph_otp(u8 *plaintext, u32 pt_len, u8 *key, u8 **ciphertext, u32 *ct_len) {
     return CRP_OK;
 }
 
-// to decrypt swap ciphertext with plaintext
-// keylen: <1, 256>, cipheretxtlen: messagelen
-i32 ciph_rc4(u8 *plaintext, u32 pt_len, u8 *key, u32 key_len, u8 **ciphertext, u32 *ct_len) {
-    if (!*ciphertext) {
-        *ciphertext = malloc(pt_len);
-        if (!*ciphertext)
-            return CRP_ERR;
-    }
-
-    u8 s[256];
-    u8 i = 0, j = 0;
-    for (i = 0; i < 255; ++i)
-        s[i] = i;
-    for (i = 0; i < 255; ++i) {
-        j = (j + s[i] + key[i % key_len]) % 256;
-        u8 temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-    }
-
-    u32 k = i = j = 0;
-    for (k = 0; k < pt_len; ++k) {
-        i = (i + 1) % 256;
-        j = (j + s[i]) % 256;
-
-        u8 temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-
-        (*ciphertext)[k] = plaintext[k] ^ s[(s[i] + s[j]) % 256];
-    }
-    *ct_len = k;
-
-    return CRP_OK;
-}
-
 int main() {
     u8 pt[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-    u8 key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
-        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
-    u8 ct[32];
+    u8 key[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    u8 ct[16];
     u32 ct_len, final_ct_len;
 
     printf("\n\n\n\nkey:\t\t\t");
-    hexdump(key, 32);
+    hexdump(key, 16);
     printf("\n");
 
     printf("plaintext:\t\t");
     hexdump(pt, 16);
 
     CIPH_CTX ctx;
-    encrypt_init(&ctx, ecb_aes256(), key, NULL);
+    encrypt_init(&ctx, rc4(), key, NULL);
     encrypt_update(&ctx, pt, (u32)sizeof(pt), ct, &ct_len);
     final_ct_len = ct_len;
     encrypt_final(&ctx, ct + ct_len, &ct_len);
@@ -1183,9 +1202,9 @@ int main() {
     printf("ciphertext:\t\t");
     hexdump(ct, final_ct_len);
 
-    u8 dec_pt[32];
+    u8 dec_pt[16];
     i32 pt_len, final_pt_len;
-    decrypt_init(&ctx, ecb_aes256(), key, NULL);
+    decrypt_init(&ctx, rc4(), key, NULL);
     decrypt_update(&ctx, ct, (u32)sizeof(ct), dec_pt, &pt_len);
     final_pt_len = pt_len;
     decrypt_final(&ctx, dec_pt + pt_len, &pt_len);
