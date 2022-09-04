@@ -768,10 +768,13 @@ i32 encrypt_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     ctx->state = malloc(cipher.enc_state_size);
     if (!ctx->state)
         return CRP_ERR;
-    ctx->queue_buf = cipher.block_size ? malloc(cipher.block_size) : NULL;
+    ctx->queue_buf = NULL;
+    if (cipher.block_size) {
+        ctx->queue_buf = malloc(cipher.block_size);
+        if (!ctx->queue_buf)
+            return CRP_ERR;
+    }
     ctx->queue_size = 0;
-    if (!ctx->queue_buf)
-        return CRP_ERR;
     return cipher.enc_state_init(key, iv, ctx->state);
 }
 
@@ -792,20 +795,24 @@ i32 encrypt_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32
         ctx->queue_size = pt_len;
     }
     else {
-        // TODO: fill
+        if (!ctx->ciph.encrypt_update(ctx->state, plaintext, pt_len, ciphertext))
+            return CRP_ERR;
+        *ct_len = pt_len;
     }
     return CRP_OK;
 }
 
-i32 encrypt_final(CRP_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
-    if (!ctx->ciph.padder(ctx->queue_buf, ctx->queue_size, ctx->ciph.block_size))
-        return CRP_ERR;
-    if (!ctx->ciph.encrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, ciphertext))
-        return CRP_ERR;
+i32 encrypt_final(CIPH_CTX *ctx, u8 *ciphertext, u32 *ct_len) {
+    if (ctx->ciph.padder)
+        if (!ctx->ciph.padder(ctx->queue_buf, ctx->queue_size, ctx->ciph.block_size))
+            return CRP_ERR;
+    if (ctx->queue_buf) {
+        if (!ctx->ciph.encrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, ciphertext))
+            return CRP_ERR;
+        free(ctx->queue_buf);
+    }
     *ct_len = ctx->ciph.block_size;
     free(ctx->state);
-    if (ctx->queue_buf)
-        free(ctx->queue_buf);
     return CRP_OK;
 }
 
@@ -814,10 +821,13 @@ i32 decrypt_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     ctx->state = malloc(cipher.dec_state_size);
     if (!ctx->state)
         return CRP_ERR;
-    ctx->queue_buf = cipher.block_size ? malloc(cipher.block_size) : NULL;
+    ctx->queue_buf = NULL;
+    if (cipher.block_size) {
+        ctx->queue_buf = malloc(cipher.block_size);
+        if (!ctx->queue_buf)
+            return CRP_ERR;
+    }
     ctx->queue_size = 0;
-    if (!ctx->queue_buf)
-        return CRP_ERR;
     return cipher.dec_state_init(key, iv, ctx->state);
 }
 
@@ -838,22 +848,27 @@ i32 decrypt_update(CIPH_CTX *ctx, u8 *ciphertext, u32 ct_len, u8 *plaintext, i32
         ctx->queue_size = ct_len;
     }
     else {
-        // TODO: fill
+        if (!ctx->ciph.decrypt_update(ctx->state, ciphertext, ct_len, plaintext))
+            return CRP_ERR;
+        *pt_len = ct_len;
     }
     return CRP_OK;
 }
 
 i32 decrypt_final(CIPH_CTX *ctx, u8 *plaintext, i32 *pt_len) {
-    u32 cutoff;
-    if (!ctx->ciph.decrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, plaintext))
-        return CRP_ERR;
-    *pt_len = ctx->ciph.block_size;
-    if (!ctx->ciph.unpadder(plaintext, ctx->ciph.block_size, &cutoff))
-        return CRP_ERR;
-    *pt_len -= cutoff;
-    free(ctx->state);
-    if (ctx->queue_buf)
+    if (ctx->queue_buf) {
+        if (!ctx->ciph.decrypt_update(ctx->state, ctx->queue_buf, ctx->ciph.block_size, plaintext))
+            return CRP_ERR;
         free(ctx->queue_buf);
+    }
+    *pt_len = ctx->ciph.block_size;
+    if (ctx->ciph.unpadder) {
+        u32 cutoff;
+        if (!ctx->ciph.unpadder(plaintext, ctx->ciph.block_size, &cutoff))
+            return CRP_ERR;
+        *pt_len -= cutoff;
+    }
+    free(ctx->state);
     return CRP_OK;
 }
 
