@@ -4,13 +4,10 @@
 #include <string.h>
 #include <errno.h>
 
+#include "cipher.h"
+
 #define CRP_ERR 0
 #define CRP_OK 1
-
-typedef uint8_t u8;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int32_t i32;
 
 #define MAX(a, b) ( ((a) > (b)) ? (a) : (b) )
 #define MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
@@ -26,29 +23,6 @@ typedef int32_t i32;
 #define RIGHTROTATE64(n, d) ( ( (n) >> (d) ) | ( (n) << (64 - (d)) ) )
 #define SWAPENDIAN64(n) ( ( ( (n) & 0xff ) << 56 ) | ( ( (n) & 0xff00 ) << 40 ) | ( ( (n) & 0xff0000 ) << 24 ) | ( ( (n) & 0xff000000 ) << 8 ) \
         | ( ( (n) & 0xff00000000 ) >> 8 ) | ( ( (n) & 0xff0000000000 ) >> 24 ) | ( ( (n) & 0xff000000000000 ) >> 40) | ( ( (n) & 0xff00000000000000 ) >> 56 ) )
-
-typedef struct CIPHER {
-    u32 block_size; // block_size = 0 for stream ciphers
-    u32 key_size, iv_size;
-
-    u32 enc_state_size;
-    i32 (*enc_state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*encrypt_update)(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext);
-    i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
-
-    u32 dec_state_size;
-    i32 (*dec_state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*decrypt_update)(u8 *state, u8 *ciphertext, u32 ct_len, u8 *plaintext);
-    i32 (*unpadder)(u8 *block, u32 block_size, u32 *cutoff);
-} CIPHER;
-
-typedef struct CIPH_CTX {
-    u64 pt_len;
-    CIPHER ciph;
-    u8 *state;
-    u32 queue_size;
-    u8 *queue_buf;
-} CIPH_CTX;
 
 void hexdump(u8 *in, u32 len) {
     for (u32 i = 0; i < len; ++i)
