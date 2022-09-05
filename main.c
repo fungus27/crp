@@ -1183,9 +1183,11 @@ int main() {
     u8 *dec_pt = malloc(sizeof(pt));
     i32 pt_len, final_pt_len;
     decrypt_init(&ctx, ecb_aes256(), key, NULL);
-    decrypt_update(&ctx, ct, final_ct_len, dec_pt, &pt_len);
+    decrypt_update(&ctx, ct, final_ct_len - 13, dec_pt, &pt_len);
     final_pt_len = pt_len;
-    decrypt_final(&ctx, dec_pt + pt_len, &pt_len);
+    decrypt_update(&ctx, ct + final_ct_len - 13, 13, dec_pt + final_pt_len, &pt_len);
+    final_pt_len += pt_len;
+    decrypt_final(&ctx, dec_pt + final_pt_len, &pt_len);
     final_pt_len += pt_len;
     printf("decrypted ciphertext len: %i\n", final_pt_len);
     printf("decrypted ciphertext:\t");
