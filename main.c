@@ -766,7 +766,7 @@ i32 encrypt_update(CIPH_CTX *ctx, u8 *plaintext, u32 pt_len, u8 *ciphertext, u32
             ctx->queue_size = 0;
         }
         memcpy(ctx->queue_buf + ctx->queue_size, plaintext, pt_len);
-        ctx->queue_size = pt_len;
+        ctx->queue_size += pt_len;
     }
     else {
         if (!ctx->ciph.encrypt_update(ctx->state, plaintext, pt_len, ciphertext))
@@ -819,7 +819,7 @@ i32 decrypt_update(CIPH_CTX *ctx, u8 *ciphertext, u32 ct_len, u8 *plaintext, i32
             ctx->queue_size = 0;
         }
         memcpy(ctx->queue_buf + ctx->queue_size, ciphertext, ct_len);
-        ctx->queue_size = ct_len;
+        ctx->queue_size += ct_len;
     }
     else {
         if (!ctx->ciph.decrypt_update(ctx->state, ciphertext, ct_len, plaintext))
