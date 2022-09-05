@@ -1153,39 +1153,44 @@ i32 ciph_otp(u8 *plaintext, u32 pt_len, u8 *key, u8 **ciphertext, u32 *ct_len) {
 }
 
 int main() {
-    u8 pt[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-    u8 key[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-    u8 ct[16];
+    u8 pt[] = "zupa zupa zupa zupa zupa zupa zupa zupa";
+    u8 key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    u8 *ct = malloc(sizeof(pt) + 16);
     u32 ct_len, final_ct_len;
 
     printf("\n\n\n\nkey:\t\t\t");
-    hexdump(key, 16);
+    hexdump(key, sizeof(key));
     printf("\n");
 
+    printf("plaintext lenght: %u\n", sizeof(pt));
     printf("plaintext:\t\t");
-    hexdump(pt, 16);
+    hexdump(pt, sizeof(pt));
+    printf("(ascii): %s\n", pt);
 
     CIPH_CTX ctx;
-    encrypt_init(&ctx, rc4(), key, NULL);
-    encrypt_update(&ctx, pt, (u32)sizeof(pt), ct, &ct_len);
+    encrypt_init(&ctx, ecb_aes256(), key, NULL);
+    encrypt_update(&ctx, pt, (u32)sizeof(pt) - 7, ct, &ct_len);
     final_ct_len = ct_len;
-    encrypt_final(&ctx, ct + ct_len, &ct_len);
+    encrypt_update(&ctx, pt + (u32)sizeof(pt) - 7, 7, ct + final_ct_len, &ct_len);
+    final_ct_len += ct_len;
+    encrypt_final(&ctx, ct + final_ct_len, &ct_len);
     final_ct_len += ct_len;
 
-    printf("ciphertext lenght: %u\n", final_ct_len);
+    printf("\n\nciphertext lenght: %u\n", final_ct_len);
     printf("ciphertext:\t\t");
     hexdump(ct, final_ct_len);
 
-    u8 dec_pt[16];
+    u8 *dec_pt = malloc(sizeof(pt));
     i32 pt_len, final_pt_len;
-    decrypt_init(&ctx, rc4(), key, NULL);
-    decrypt_update(&ctx, ct, (u32)sizeof(ct), dec_pt, &pt_len);
+    decrypt_init(&ctx, ecb_aes256(), key, NULL);
+    decrypt_update(&ctx, ct, final_ct_len, dec_pt, &pt_len);
     final_pt_len = pt_len;
     decrypt_final(&ctx, dec_pt + pt_len, &pt_len);
     final_pt_len += pt_len;
     printf("decrypted ciphertext len: %i\n", final_pt_len);
     printf("decrypted ciphertext:\t");
-    hexdump(dec_pt, 16);
+    hexdump(dec_pt, (u32)final_pt_len);
+    printf("(ascii): %s\n", dec_pt);
 
     //free(ct);
 }
