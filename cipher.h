@@ -22,7 +22,6 @@ typedef struct CIPHER {
 } CIPHER;
 
 typedef struct CIPH_CTX {
-    u64 pt_len;
     CIPHER ciph;
     u8 *state;
     u32 queue_size;

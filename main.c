@@ -738,7 +738,6 @@ i32 hash_sha512_256(u8 *plaintext, u32 pt_len, u8 **digest) {
 
 i32 encrypt_init(CIPH_CTX *ctx, CIPHER cipher, u8 *key, u8 *iv) {
     ctx->ciph = cipher;
-    ctx->pt_len = 0;
     ctx->state = malloc(cipher.enc_state_size);
     if (!ctx->state)
         return CRP_ERR;
