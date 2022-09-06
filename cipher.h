@@ -1,31 +1,26 @@
 #ifndef CIPHER_H
 #define CIPHER_H
 
-typedef uint8_t u8;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int32_t i32;
-
 typedef struct CIPHER {
-    u32 block_size; // block_size = 0 for stream ciphers
-    u32 key_size, iv_size;
+    unsigned int block_size; // block_size = 0 for stream ciphers
+    unsigned int key_size, iv_size;
 
-    u32 enc_state_size;
-    i32 (*enc_state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*encrypt_update)(u8 *state, u8 *plaintext, u32 pt_len, u8 *ciphertext);
-    i32 (*padder)(u8 *block, u32 pt_size, u32 block_size);
+    unsigned int enc_state_size;
+    int (*enc_state_init)(unsigned char *key, unsigned char *iv, unsigned char *state);
+    int (*encrypt_update)(unsigned char *state, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext);
+    int (*padder)(unsigned char *block, unsigned int pt_size, unsigned int block_size);
 
-    u32 dec_state_size;
-    i32 (*dec_state_init)(u8 *key, u8 *iv, u8 *state);
-    i32 (*decrypt_update)(u8 *state, u8 *ciphertext, u32 ct_len, u8 *plaintext);
-    i32 (*unpadder)(u8 *block, u32 block_size, u32 *cutoff);
+    unsigned int dec_state_size;
+    int (*dec_state_init)(unsigned char *key, unsigned char *iv, unsigned char *state);
+    int (*decrypt_update)(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext);
+    int (*unpadder)(unsigned char *block, unsigned int block_size, unsigned int *cutoff);
 } CIPHER;
 
 typedef struct CIPH_CTX {
     CIPHER ciph;
-    u8 *state;
-    u32 queue_size;
-    u8 *queue_buf;
+    unsigned char *state;
+    unsigned int queue_size;
+    unsigned char *queue_buf;
 } CIPH_CTX;
 
 #endif // CIPHER_H
