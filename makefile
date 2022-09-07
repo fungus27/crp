@@ -1,13 +1,12 @@
+vpath %.c src
+vpath %.h src
 OBJ := main.o cipher.o util.o aes.o rc4.o
 CFLAGS := -Wall
 
 main: $(OBJ)
 
-main.o: main.c util.h cipher.h
-cipher.o: cipher.c cipher.h
-util.o: util.c util.h
-aes.o: aes.c util.h cipher.h
-rc4.o: rc4.c cipher.h
+main.o cipher.o aes.o rc4.o: cipher.h
+main.o util.o aes.o: util.h
 
 clean:
 	rm *.o
