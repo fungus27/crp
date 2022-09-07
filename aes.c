@@ -5,7 +5,7 @@
 #include "cipher.h"
 #include "util.h"
 
-unsigned char gf_mul(unsigned char a, unsigned char b) {
+static unsigned char gf_mul(unsigned char a, unsigned char b) {
     unsigned char prod = 0;
     for (unsigned int k = 0; k < 8; ++k) {
         prod ^= (b & 1) ? a : 0;
@@ -17,7 +17,7 @@ unsigned char gf_mul(unsigned char a, unsigned char b) {
     return prod;
 }
 
-int block_init_enc_aes(unsigned char *key, unsigned int r, unsigned int n, unsigned char *state) {
+static int block_init_enc_aes(unsigned char *key, unsigned int r, unsigned int n, unsigned char *state) {
     // sbox generation by bruteforce (TODO: implement more efficient way of generation or just hardcode the table in)
     unsigned char *sbox = state;
     for (unsigned int i = 0; i < 256; ++i) {
@@ -55,7 +55,7 @@ int block_init_enc_aes(unsigned char *key, unsigned int r, unsigned int n, unsig
 }
 
 // TODO: get rid of this function by hardcoding the sbox and inv_sbox
-int block_init_dec_aes(unsigned char *key, unsigned int r, unsigned int n, unsigned char *state) {
+static int block_init_dec_aes(unsigned char *key, unsigned int r, unsigned int n, unsigned char *state) {
     // sbox and inv_sbox generation by bruteforce
     unsigned char sbox[256];
     unsigned char *inv_sbox = state;
@@ -96,7 +96,7 @@ int block_init_dec_aes(unsigned char *key, unsigned int r, unsigned int n, unsig
 }
 
 // single block aes256 encryption (TODO: optimize)
-int block_enc_aes(unsigned char *plaintext, unsigned char *ciphertext, unsigned char *exp_key, unsigned char *sbox, unsigned int r, unsigned int n) {
+static int block_enc_aes(unsigned char *plaintext, unsigned char *ciphertext, unsigned char *exp_key, unsigned char *sbox, unsigned int r, unsigned int n) {
     // initial round
     for (unsigned int i = 0; i < 16; ++i)
         ciphertext[i] = plaintext[i] ^ ((unsigned char*)exp_key)[i];
@@ -154,7 +154,7 @@ int block_enc_aes(unsigned char *plaintext, unsigned char *ciphertext, unsigned 
 }
 
 // single block aes256 decryption (TODO: optimize)
-int block_dec_aes(unsigned char *ciphertext, unsigned char *plaintext, unsigned char *exp_key, unsigned char *inv_sbox, unsigned int r, unsigned int n) {
+static int block_dec_aes(unsigned char *ciphertext, unsigned char *plaintext, unsigned char *exp_key, unsigned char *inv_sbox, unsigned int r, unsigned int n) {
     // final round
     // addroundkey
     for (unsigned int i = 0; i < 16; ++i)
@@ -204,19 +204,19 @@ int block_dec_aes(unsigned char *ciphertext, unsigned char *plaintext, unsigned 
     return 1;
 }
 
-int enc_ecb_aes256_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
+static int enc_ecb_aes256_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
     return block_init_enc_aes(key, 15, 8, state);
 }
 
-int dec_ecb_aes256_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
+static int dec_ecb_aes256_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
     return block_init_dec_aes(key, 15, 8, state);
 }
 
-int enc_ecb_aes256_update(unsigned char *state, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext) {
+static int enc_ecb_aes256_update(unsigned char *state, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext) {
     return block_enc_aes(plaintext, ciphertext, state + 256, state, 15, 8);
 }
 
-int dec_ecb_aes256_update(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext) {
+static int dec_ecb_aes256_update(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext) {
     return block_dec_aes(ciphertext, plaintext, state + 256, state, 15, 8);
 }
 

@@ -4,7 +4,7 @@
 
 #include "cipher.h"
 
-int rc4_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
+static int rc4_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
     const unsigned int key_len = 16; // TODO: implement variable key lenght
     unsigned char *s = state;
     unsigned char i = 0, j = 0;
@@ -20,7 +20,7 @@ int rc4_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
     return 1;
 }
 
-int enc_rc4_update(unsigned char *state, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext) {
+static int enc_rc4_update(unsigned char *state, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext) {
     unsigned char *s = state;
     uint32_t k;
     uint32_t *i = (uint32_t*)(state + 256), *j = (uint32_t*)(state + 256 + 4);
@@ -38,7 +38,7 @@ int enc_rc4_update(unsigned char *state, unsigned char *plaintext, unsigned int 
     return 1;
 }
 
-int dec_rc4_update(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext) {
+static int dec_rc4_update(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext) {
     return enc_rc4_update(state, ciphertext, ct_len, plaintext);
 }
 
