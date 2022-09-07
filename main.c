@@ -763,25 +763,6 @@ CIPHER rc4() {
     return ciph;
 }
 
-// if *ciphertext is NULL, the cipher function mallocs the needed memory which is handed to the user
-
-// to decrypt swap ciphertext with plaintext
-// keylen: messagelen, ciphertextlen: messagelen
-int ciph_otp(unsigned char *plaintext, unsigned int pt_len, unsigned char *key, unsigned char **ciphertext, unsigned int *ct_len) {
-    if (!*ciphertext) {
-        *ciphertext = malloc(pt_len);
-        if (!*ciphertext)
-            return 0;
-    }
-
-    unsigned int i;
-    for (i = 0; i < pt_len; ++i)
-        (*ciphertext)[i] = plaintext[i] ^ key[i];
-    *ct_len = i;
-
-    return 1;
-}
-
 int main() {
     unsigned char pt[] = "zupa zupa zupa zupa zupa zupa zupa zupa";
     unsigned char key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
