@@ -35,4 +35,7 @@ int decrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char
 int decrypt_update(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext, int *pt_len);
 int decrypt_final(CIPH_CTX *ctx, unsigned char *plaintext, int *pt_len);
 
+// ciphers
+CIPHER ecb_aes256();
+
 #endif // CIPHER_H
