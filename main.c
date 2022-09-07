@@ -42,7 +42,7 @@ int rand_bytes(unsigned char *out, unsigned int size) {
     return 1;
 }
 
-// TODO: make hash api, make some arguments const, rework context api (make it be defined in a source file0
+// TODO: make hash api, make some arguments const, rework context api (make it be defined in a source file)
 
 // digestlen: 16
 int hash_md5(unsigned char *plaintext, unsigned int pt_len, unsigned char **digest) {
