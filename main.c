@@ -707,62 +707,6 @@ int hash_sha512_256(unsigned char *plaintext, unsigned int pt_len, unsigned char
     return 1;
 }
 
-int rc4_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
-    const unsigned int key_len = 16; // TODO: implement variable key lenght
-    unsigned char *s = state;
-    unsigned char i = 0, j = 0;
-    for (i = 0; i < 255; ++i)
-        s[i] = i;
-    for (i = 0; i < 255; ++i) {
-        j = (j + s[i] + key[i % key_len]) % 256;
-        unsigned char temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-    }
-    memset(state + 256, 0, 8);
-    return 1;
-}
-
-int enc_rc4_update(unsigned char *state, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext) {
-    unsigned char *s = state;
-    uint32_t k;
-    uint32_t *i = (uint32_t*)(state + 256), *j = (uint32_t*)(state + 256 + 4);
-    for (k = 0; k < pt_len; ++k) {
-        *i = (*i + 1) % 256;
-        *j = (*j + s[*i]) % 256;
-
-        unsigned char temp = s[*i];
-        s[*i] = s[*j];
-        s[*j] = temp;
-
-        ciphertext[k] = plaintext[k] ^ s[(s[*i] + s[*j]) % 256];
-    }
-
-    return 1;
-}
-
-int dec_rc4_update(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext) {
-    return enc_rc4_update(state, ciphertext, ct_len, plaintext);
-}
-
-CIPHER rc4() {
-    CIPHER ciph = {
-        .block_size = 0,
-        .key_size = 16, .iv_size = 0,
-
-        .enc_state_size = 264,
-        .enc_state_init = rc4_init,
-        .encrypt_update = enc_rc4_update,
-        .padder = NULL,
-
-        .dec_state_size = 264,
-        .dec_state_init = rc4_init,
-        .decrypt_update = dec_rc4_update,
-        .unpadder = NULL,
-    };
-    return ciph;
-}
-
 int main() {
     unsigned char pt[] = "zupa zupa zupa zupa zupa zupa zupa zupa";
     unsigned char key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
@@ -779,7 +723,7 @@ int main() {
     printf("(ascii): %s\n", pt);
 
     CIPH_CTX ctx;
-    encrypt_init(&ctx, ecb_aes256(), key, NULL);
+    encrypt_init(&ctx, rc4(), key, NULL);
     encrypt_update(&ctx, pt, (unsigned int)sizeof(pt) - 7, ct, &ct_len);
     final_ct_len = ct_len;
     encrypt_update(&ctx, pt + (unsigned int)sizeof(pt) - 7, 7, ct + final_ct_len, &ct_len);
@@ -793,7 +737,7 @@ int main() {
 
     unsigned char *dec_pt = malloc(sizeof(pt));
     int pt_len, final_pt_len;
-    decrypt_init(&ctx, ecb_aes256(), key, NULL);
+    decrypt_init(&ctx, rc4(), key, NULL);
     decrypt_update(&ctx, ct, final_ct_len - 13, dec_pt, &pt_len);
     final_pt_len = pt_len;
     decrypt_update(&ctx, ct + final_ct_len - 13, 13, dec_pt + final_pt_len, &pt_len);

@@ -34,5 +34,6 @@ int decrypt_final(CIPH_CTX *ctx, unsigned char *plaintext, int *pt_len);
 
 // ciphers
 CIPHER ecb_aes256();
+CIPHER rc4();
 
 #endif // CIPHER_H
