@@ -1,9 +1,9 @@
-OBJ := main.o cipher.o
+OBJ := main.o cipher.o aes.o util.o
 CFLAGS := -Wall
 
 main: $(OBJ)
 
-$(OBJ): cipher.h
+$(OBJ): cipher.h util.h
 
 clean:
 	rm *.o

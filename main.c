@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "util.h"
 #include "cipher.h"
 
 #define CRP_ERR 0
