@@ -1,5 +1,8 @@
 #ifndef UTIL_H
 
+#define MAX(a, b) ( ((a) > (b)) ? (a) : (b) )
+#define MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
+
 #define LEFTROTATE8(n, d) ( ( (n) << (d) ) | ( (n) >> (8 - (d)) ) )
 #define RIGHTROTATE8(n, d) ( ( (n) >> (d) ) | ( (n) << (8 - (d)) ) )
 
