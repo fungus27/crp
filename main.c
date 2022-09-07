@@ -16,14 +16,12 @@ void hexdump(unsigned char *in, unsigned int len) {
 int rand_bytes(unsigned char *out, unsigned int size) {
     FILE *urand = fopen("/dev/urandom", "r");
     if (!urand) {
-        printf("cannot open '/dev/urandom/'. %s\n", strerror(errno));
         fclose(urand);
         return 0;
     }
 
     unsigned int seed;
     if(!fread(&seed, sizeof(unsigned int), 1, urand)) {
-        printf("couldn't read seed from '/dev/urandom/'.\n");
         fclose(urand);
         return 0;
     }
@@ -32,7 +30,6 @@ int rand_bytes(unsigned char *out, unsigned int size) {
     while (size--) {
         unsigned char combine;
         if(!fread(&combine, 1, 1, urand)) {
-            printf("couldn't read byte from '/dev/urandom/'.\n");
             fclose(urand);
             return 0;
         }
