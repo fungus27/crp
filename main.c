@@ -37,7 +37,7 @@ int rand_bytes(unsigned char *out, unsigned int size) {
             return 0;
         }
         unsigned char res = (rand() * combine) + 0x1485914;
-        res ^= ((rand() * 0x7fbfb + 2) / 3 + seed >> 2);
+        res ^= ((rand() * 0x7fbfb + 2) / 3 + seed) >> 2;
 
         out[size] = res;
     }
@@ -792,7 +792,7 @@ int main() {
     hexdump(key, sizeof(key));
     printf("\n");
 
-    printf("plaintext lenght: %u\n", sizeof(pt));
+    printf("plaintext lenght: %u\n", (unsigned int)sizeof(pt));
     printf("plaintext:\t\t");
     hexdump(pt, sizeof(pt));
     printf("(ascii): %s\n", pt);
