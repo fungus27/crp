@@ -1,6 +1,9 @@
 #ifndef CIPHER_H
 #define CIPHER_H
 
+#define CRP_OK 1
+#define CRP_ERR 0
+
 typedef struct CIPHER {
     unsigned int block_size; // block_size = 0 for stream ciphers
     unsigned int key_size, iv_size;
@@ -22,5 +25,14 @@ typedef struct CIPH_CTX {
     unsigned int queue_size;
     unsigned char *queue_buf;
 } CIPH_CTX;
+
+
+int encrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv);
+int encrypt_update(CIPH_CTX *ctx, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext, unsigned int *ct_len);
+int encrypt_final(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int *ct_len);
+
+int decrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv);
+int decrypt_update(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext, int *pt_len);
+int decrypt_final(CIPH_CTX *ctx, unsigned char *plaintext, int *pt_len);
 
 #endif // CIPHER_H
