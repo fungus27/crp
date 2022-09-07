@@ -51,7 +51,7 @@ int block_init_enc_aes(unsigned char *key, unsigned int r, unsigned int n, unsig
         exp_key[i] = exp_key[i - n] ^ t;
     }
 
-    return CRP_OK;
+    return 1;
 }
 
 // TODO: get rid of this function by hardcoding the sbox and inv_sbox
@@ -92,7 +92,7 @@ int block_init_dec_aes(unsigned char *key, unsigned int r, unsigned int n, unsig
         exp_key[i] = exp_key[i - n] ^ t;
     }
 
-    return CRP_OK;
+    return 1;
 }
 
 // single block aes256 encryption (TODO: optimize)
@@ -150,7 +150,7 @@ int block_enc_aes(unsigned char *plaintext, unsigned char *ciphertext, unsigned 
     for (unsigned int j = 0; j < 16; ++j)
         ciphertext[j] ^= ((unsigned char*)exp_key)[(r - 1) * 16 + j];
 
-    return CRP_OK;
+    return 1;
 }
 
 // single block aes256 decryption (TODO: optimize)
@@ -201,7 +201,7 @@ int block_dec_aes(unsigned char *ciphertext, unsigned char *plaintext, unsigned 
     for (unsigned int j = 0; j < 16; ++j)
         plaintext[j] ^= ((unsigned char*)exp_key)[j];
 
-    return CRP_OK;
+    return 1;
 }
 
 int enc_ecb_aes256_init(unsigned char *key, unsigned char *iv, unsigned char *state) {

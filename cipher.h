@@ -1,9 +1,6 @@
 #ifndef CIPHER_H
 #define CIPHER_H
 
-#define CRP_OK 1
-#define CRP_ERR 0
-
 typedef struct CIPHER {
     unsigned int block_size; // block_size = 0 for stream ciphers
     unsigned int key_size, iv_size;
