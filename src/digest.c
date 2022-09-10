@@ -44,7 +44,7 @@ int digest_update(MD_CTX *ctx, unsigned char *message, unsigned int m_len) {
 }
 
 int digest_final(MD_CTX *ctx, unsigned char *md, unsigned int *md_len) {
-    if (!ctx->digest.final(ctx->state, ctx->queue_buf, ctx->queue_size, md, md_len))
+    if (!ctx->digest.final(ctx->state, ctx->queue_buf, ctx->queue_size, md))
         return 0;
     if (ctx->state)
         free(ctx->state);

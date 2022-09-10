@@ -7,7 +7,7 @@ typedef struct DIGEST {
 
     int (*state_init)(unsigned char *state);
     int (*update)(unsigned char *state, unsigned char *message, unsigned int m_len);
-    int (*final)(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md, unsigned int *md_len);
+    int (*final)(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md);
 } DIGEST;
 
 typedef struct MD_CTX {

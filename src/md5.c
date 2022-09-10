@@ -81,7 +81,7 @@ static int md5_update(unsigned char *state, unsigned char *message, unsigned int
     return 1;
 }
 
-static int md5_final(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md, unsigned int *md_len) {
+static int md5_final(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md) {
     uint64_t *len = (uint64_t*)(state + 16);
     *len += rest_len * 8;
     rest[rest_len] = 0x80;
@@ -96,7 +96,6 @@ static int md5_final(unsigned char *state, unsigned char *rest, unsigned int res
     memcpy(rest + 56, len, 8); // footer
     if (!md5_update(state, rest, 64))
         return 0;
-    *md_len = 64;
     memcpy(md, state, 16);
     return 1;
 }
