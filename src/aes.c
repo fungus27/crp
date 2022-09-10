@@ -228,12 +228,12 @@ CIPHER ecb_aes256() {
         .enc_state_size = 496,
         .enc_state_init = enc_ecb_aes256_init,
         .encrypt_update = enc_ecb_aes256_update,
-        .padder = pad_pkcs,
+        .padder = util_pad_pkcs,
 
         .dec_state_size = 496,
         .dec_state_init = dec_ecb_aes256_init,
         .decrypt_update = dec_ecb_aes256_update,
-        .unpadder = unpad_pkcs,
+        .unpadder = util_unpad_pkcs,
     };
     return ciph;
 }

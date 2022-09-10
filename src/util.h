@@ -15,7 +15,7 @@
 #define SWAPENDIAN64(n) ( ( ( (n) & 0xff ) << 56 ) | ( ( (n) & 0xff00 ) << 40 ) | ( ( (n) & 0xff0000 ) << 24 ) | ( ( (n) & 0xff000000 ) << 8 ) \
         | ( ( (n) & 0xff00000000 ) >> 8 ) | ( ( (n) & 0xff0000000000 ) >> 24 ) | ( ( (n) & 0xff000000000000 ) >> 40) | ( ( (n) & 0xff00000000000000 ) >> 56 ) )
 
-int pad_pkcs(unsigned char *block, unsigned int pt_size, unsigned int block_size);
-int unpad_pkcs(unsigned char *block, unsigned int block_size, unsigned int *cutoff);
+int util_pad_pkcs(unsigned char *block, unsigned int pt_size, unsigned int block_size);
+int util_unpad_pkcs(unsigned char *block, unsigned int block_size, unsigned int *cutoff);
 
 #endif // UTIL_H
