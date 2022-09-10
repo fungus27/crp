@@ -93,7 +93,7 @@ static int md5_final(unsigned char *state, unsigned char *rest, unsigned int res
         rest_len = 0;
     }
     memset(rest + rest_len + 1, 0, 56 - rest_len - 1);
-    memcpy(rest + 56, state + 16, 8); // footer
+    memcpy(rest + 56, len, 8); // footer
     if (!md5_update(state, rest, 64))
         return 0;
     *md_len = 64;
