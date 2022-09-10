@@ -47,10 +47,10 @@ int rand_bytes(unsigned char *out, unsigned int size) {
 
 int main() {
     unsigned char pt[] = "The quick brown fox jumps over the lazy dog";
-    unsigned char md[16];
+    unsigned char md[20];
     unsigned int md_len;
     MD_CTX ctx;
-    digest_init(&ctx, md5());
+    digest_init(&ctx, sha1());
     digest_update(&ctx, pt, sizeof(pt) - 1 - 7);
     digest_update(&ctx, pt + sizeof(pt) - 1 - 7, 7);
     digest_final(&ctx, md, &md_len);
