@@ -43,7 +43,9 @@ int rand_bytes(unsigned char *out, unsigned int size) {
     return 1;
 }
 
-// TODO: make hash api, make some arguments const, rework context api (make it be defined in a source file)
+// TODO: make hash api, make some arguments const, rework context, cipher and digest api (make the structs private)
+// change project structure, remove redundant returns for errors, reduce duplicate code, add comments, move constants to
+// global file scope, clean up code, add tests
 
 int main() {
     unsigned char pt[] = "The quick brown fox jumps over the lazy dog";
