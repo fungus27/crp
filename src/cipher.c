@@ -5,9 +5,12 @@
 
 int encrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv) {
     ctx->ciph = cipher;
-    ctx->state = malloc(cipher.enc_state_size);
-    if (!ctx->state)
-        return 0;
+    ctx->state = NULL;
+    if (cipher.enc_state_size) {
+        ctx->state = malloc(cipher.enc_state_size);
+        if (!ctx->state)
+            return 0;
+    }
     ctx->queue_buf = NULL;
     if (cipher.block_size) {
         ctx->queue_buf = malloc(cipher.block_size);
@@ -52,15 +55,19 @@ int encrypt_final(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int *ct_len
         free(ctx->queue_buf);
     }
     *ct_len = ctx->ciph.block_size;
-    free(ctx->state);
+    if (ctx->state)
+        free(ctx->state);
     return 1;
 }
 
 int decrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv) {
     ctx->ciph = cipher;
-    ctx->state = malloc(cipher.dec_state_size);
-    if (!ctx->state)
-        return 0;
+    ctx->state = NULL;
+    if (cipher.dec_state_size) {
+        ctx->state = malloc(cipher.dec_state_size);
+        if (!ctx->state)
+            return 0;
+    }
     ctx->queue_buf = NULL;
     if (cipher.block_size) {
         ctx->queue_buf = malloc(cipher.block_size);
@@ -108,7 +115,8 @@ int decrypt_final(CIPH_CTX *ctx, unsigned char *plaintext, int *pt_len) {
             return 0;
         *pt_len -= cutoff;
     }
-    free(ctx->state);
+    if (ctx->state)
+        free(ctx->state);
     return 1;
 }
 
