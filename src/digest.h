@@ -1,4 +1,5 @@
 #ifndef DIGEST_H
+#define DIGEST_H
 
 typedef struct DIGEST {
     unsigned int digest_size;
