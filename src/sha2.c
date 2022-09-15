@@ -109,6 +109,22 @@ static int sha256_final(unsigned char *state, unsigned char *rest, unsigned int 
     return 1;
 }
 
+static int sha224_init(unsigned char *state) {
+    uint32_t hash[8] = {0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4};
+    memcpy(state, hash, 32);
+    memset(state + 32, 0, 8);
+    return 1;
+}
+
+static int sha224_final(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md) {
+    if (!core_sha256_final(state, rest, rest_len))
+        return 0;
+    for (unsigned int i = 0; i < 7; ++i)
+        ((uint32_t*)md)[i] = SWAPENDIAN32(((uint32_t*)state)[i]);
+
+    return 1;
+}
+
 DIGEST sha256() {
     DIGEST digest = {
         .digest_size = 32,
@@ -118,6 +134,19 @@ DIGEST sha256() {
         .state_init = sha256_init,
         .update = sha256_update,
         .final = sha256_final
+    };
+    return digest;
+}
+
+DIGEST sha224() {
+    DIGEST digest = {
+        .digest_size = 28,
+        .block_size = 64,
+        .state_size = 40,
+
+        .state_init = sha224_init,
+        .update = sha256_update,
+        .final = sha224_final
     };
     return digest;
 }
