@@ -259,6 +259,56 @@ static int sha384_final(unsigned char *state, unsigned char *rest, unsigned int 
     return 1;
 }
 
+static int sha512_t_iv(unsigned int t, uint64_t *iv) {
+    if (t > 512 || t % 8)
+        return 0;
+    unsigned char sha512_state[80];
+    sha512_init(sha512_state);
+    for (unsigned int i = 0; i < 8; ++i)
+        ((uint64_t*)(sha512_state))[i] ^= 0xa5a5a5a5a5a5a5a5;
+    char iv_str[128];
+    sprintf(iv_str, "SHA-512/%u", t);
+    sha512_final(sha512_state, (unsigned char*)iv_str, strlen(iv_str), (unsigned char*)iv);
+    for (unsigned int i = 0; i < 8; ++i)
+        iv[i] = SWAPENDIAN64(iv[i]);
+
+    return 1;
+}
+
+static int sha512_256_init(unsigned char *state) {
+    uint64_t hash[8];
+    sha512_t_iv(256, hash);
+    memcpy(state, hash, 64);
+    memset(state + 64, 0, 16);
+    return 1;
+}
+
+static int sha512_256_final(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md) {
+    if (!core_sha512_final(state, rest, rest_len))
+        return 0;
+    for (unsigned int i = 0; i < 4; ++i)
+        ((uint64_t*)state)[i] = SWAPENDIAN64(((uint64_t*)state)[i]);
+    memcpy(md, state, 32);
+    return 1;
+}
+
+static int sha512_224_init(unsigned char *state) {
+    uint64_t hash[8];
+    sha512_t_iv(224, hash);
+    memcpy(state, hash, 64);
+    memset(state + 64, 0, 16);
+    return 1;
+}
+
+static int sha512_224_final(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md) {
+    if (!core_sha512_final(state, rest, rest_len))
+        return 0;
+    for (unsigned int i = 0; i < 4; ++i)
+        ((uint64_t*)state)[i] = SWAPENDIAN64(((uint64_t*)state)[i]);
+    memcpy(md, state, 28);
+    return 1;
+}
+
 DIGEST sha256() {
     DIGEST digest = {
         .digest_size = 32,
@@ -307,6 +357,33 @@ DIGEST sha384() {
         .state_init = sha384_init,
         .update = sha512_update,
         .final = sha384_final
+    };
+    return digest;
+}
+
+// TODO: implement variable size t in SHA-512/t
+DIGEST sha512_256() {
+    DIGEST digest = {
+        .digest_size = 32,
+        .block_size = 128,
+        .state_size = 80,
+
+        .state_init = sha512_256_init,
+        .update = sha512_update,
+        .final = sha512_256_final
+    };
+    return digest;
+}
+
+DIGEST sha512_224() {
+    DIGEST digest = {
+        .digest_size = 28,
+        .block_size = 128,
+        .state_size = 80,
+
+        .state_init = sha512_224_init,
+        .update = sha512_update,
+        .final = sha512_224_final
     };
     return digest;
 }
