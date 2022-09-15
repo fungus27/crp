@@ -43,9 +43,9 @@ int rand_bytes(unsigned char *out, unsigned int size) {
     return 1;
 }
 
-// TODO: make hash api, make some arguments const, rework context, cipher and digest api (make the structs private)
+// TODO: make some arguments const, rework context, cipher and digest api (make the structs private)
 // change project structure, remove redundant returns for errors, reduce duplicate code, add comments, move constants to
-// global file scope, clean up code, add tests
+// global file scope, clean up code, add tests, make code bulletproof
 
 int main() {
     unsigned char pt[] = "";
