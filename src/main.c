@@ -49,10 +49,10 @@ int rand_bytes(unsigned char *out, unsigned int size) {
 
 int main() {
     unsigned char pt[] = "";
-    unsigned char md[28];
+    unsigned char md[64];
     unsigned int md_len;
     MD_CTX ctx;
-    digest_init(&ctx, sha224());
+    digest_init(&ctx, sha512());
     digest_update(&ctx, pt, sizeof(pt) - 1);
     digest_final(&ctx, md, &md_len);
     printf("md_len: %u\n", md_len);

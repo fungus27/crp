@@ -26,5 +26,6 @@ DIGEST md5();
 DIGEST sha1();
 DIGEST sha256();
 DIGEST sha224();
+DIGEST sha512();
 
 #endif // DIGEST_H
