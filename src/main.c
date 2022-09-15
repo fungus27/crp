@@ -48,15 +48,13 @@ int rand_bytes(unsigned char *out, unsigned int size) {
 // global file scope, clean up code, add tests
 
 int main() {
-    unsigned char pt[] = "The quick brown fox jumps over the lazy dog";
-    unsigned char md[20];
+    unsigned char pt[] = "";
+    unsigned char md[32];
     unsigned int md_len;
     MD_CTX ctx;
-    digest_init(&ctx, sha1());
-    digest_update(&ctx, pt, sizeof(pt) - 1 - 7);
-    digest_update(&ctx, pt + sizeof(pt) - 1 - 7, 7);
+    digest_init(&ctx, sha256());
+    digest_update(&ctx, pt, sizeof(pt) - 1);
     digest_final(&ctx, md, &md_len);
-
     printf("md_len: %u\n", md_len);
     hexdump(md, md_len);
 }

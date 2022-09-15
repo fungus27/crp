@@ -24,5 +24,6 @@ int digest_final(MD_CTX *ctx, unsigned char *md, unsigned int *md_len);
 
 DIGEST md5();
 DIGEST sha1();
+DIGEST sha256();
 
 #endif // DIGEST_H
