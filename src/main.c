@@ -52,7 +52,7 @@ int main() {
     unsigned char md[64];
     unsigned int md_len;
     MD_CTX ctx;
-    digest_init(&ctx, sha512());
+    digest_init(&ctx, sha384());
     digest_update(&ctx, pt, sizeof(pt) - 1);
     digest_final(&ctx, md, &md_len);
     printf("md_len: %u\n", md_len);

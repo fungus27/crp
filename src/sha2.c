@@ -244,6 +244,21 @@ static int sha512_final(unsigned char *state, unsigned char *rest, unsigned int 
     return 1;
 }
 
+static int sha384_init(unsigned char *state) {
+    uint64_t hash[8] = {0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939, 0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4};
+    memcpy(state, hash, 64);
+    memset(state + 64, 0, 16);
+    return 1;
+}
+
+static int sha384_final(unsigned char *state, unsigned char *rest, unsigned int rest_len, unsigned char *md) {
+    if (!core_sha512_final(state, rest, rest_len))
+        return 0;
+    for (unsigned int i = 0; i < 6; ++i)
+        ((uint64_t*)md)[i] = SWAPENDIAN64(((uint64_t*)state)[i]);
+    return 1;
+}
+
 DIGEST sha256() {
     DIGEST digest = {
         .digest_size = 32,
@@ -279,6 +294,19 @@ DIGEST sha512() {
         .state_init = sha512_init,
         .update = sha512_update,
         .final = sha512_final
+    };
+    return digest;
+}
+
+DIGEST sha384() {
+    DIGEST digest = {
+        .digest_size = 48,
+        .block_size = 128,
+        .state_size = 80,
+
+        .state_init = sha384_init,
+        .update = sha512_update,
+        .final = sha384_final
     };
     return digest;
 }
