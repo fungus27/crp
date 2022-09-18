@@ -22,6 +22,7 @@ int digest_init(MD_CTX *ctx, DIGEST digest);
 int digest_update(MD_CTX *ctx, unsigned char *message, unsigned int m_len);
 int digest_final(MD_CTX *ctx, unsigned char *md, unsigned int *md_len);
 
+// TODO: break up code into the core hash functions and general structures (like the merkle-damgard construction)
 DIGEST md5();
 DIGEST sha1();
 DIGEST sha256();
