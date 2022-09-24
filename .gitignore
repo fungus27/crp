@@ -1,4 +1,5 @@
 *.sh
 *.o
+.ccls
 .gdbinit
 main

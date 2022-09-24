@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "cipher.h"
+#include <crp/cipher.h>
+#include "cipher_internal.h"
 #include "util.h"
 
 static unsigned char gf_mul(unsigned char a, unsigned char b) {

@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "cipher.h"
+#include <crp/cipher.h>
+#include "cipher_internal.h"
 
 static int rc4_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
     const unsigned int key_len = 16; // TODO: implement variable key lenght

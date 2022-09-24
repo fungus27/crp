@@ -1,7 +1,9 @@
-#ifndef CIPHER_H
-#define CIPHER_H
+#ifndef CIPHER_INT_H
+#define CIPHER_INT_H
 
-typedef struct CIPHER {
+#include <crp/cipher.h>
+
+struct cipher {
     unsigned int block_size; // block_size = 0 for stream ciphers
     unsigned int key_size, iv_size;
 
@@ -14,26 +16,13 @@ typedef struct CIPHER {
     int (*dec_state_init)(unsigned char *key, unsigned char *iv, unsigned char *state);
     int (*decrypt_update)(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext);
     int (*unpadder)(unsigned char *block, unsigned int block_size, unsigned int *cutoff);
-} CIPHER;
+}; /* CIPHER */
 
-typedef struct CIPH_CTX {
+struct cipher_context {
     CIPHER ciph;
     unsigned char *state;
     unsigned int queue_size;
     unsigned char *queue_buf;
-} CIPH_CTX;
+}; /* CIPH_CTX */
 
-
-int encrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv);
-int encrypt_update(CIPH_CTX *ctx, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext, unsigned int *ct_len);
-int encrypt_final(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int *ct_len);
-
-int decrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv);
-int decrypt_update(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext, int *pt_len);
-int decrypt_final(CIPH_CTX *ctx, unsigned char *plaintext, int *pt_len);
-
-// ciphers
-CIPHER ecb_aes256();
-CIPHER rc4();
-
-#endif // CIPHER_H
+#endif // CIPHER_INT_H

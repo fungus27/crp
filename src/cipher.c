@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cipher.h"
+#include <crp/cipher.h>
+#include "cipher_internal.h"
 
 int encrypt_init(CIPH_CTX *ctx, CIPHER cipher, unsigned char *key, unsigned char *iv) {
     ctx->ciph = cipher;
