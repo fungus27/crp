@@ -43,21 +43,22 @@ static int dec_rc4_update(unsigned char *state, unsigned char *ciphertext, unsig
     return enc_rc4_update(state, ciphertext, ct_len, plaintext);
 }
 
-CIPHER rc4() {
-    CIPHER ciph = {
-        .block_size = 0,
-        .key_size = 16, .iv_size = 0,
+static CIPHER ciph_rc4 = {
+    .block_size = 0,
+    .key_size = 16, .iv_size = 0,
 
-        .enc_state_size = 264,
-        .enc_state_init = rc4_init,
-        .encrypt_update = enc_rc4_update,
-        .padder = NULL,
+    .enc_state_size = 264,
+    .enc_state_init = rc4_init,
+    .encrypt_update = enc_rc4_update,
+    .padder = NULL,
 
-        .dec_state_size = 264,
-        .dec_state_init = rc4_init,
-        .decrypt_update = dec_rc4_update,
-        .unpadder = NULL,
-    };
-    return ciph;
+    .dec_state_size = 264,
+    .dec_state_init = rc4_init,
+    .decrypt_update = dec_rc4_update,
+    .unpadder = NULL,
+};
+
+CIPHER *rc4() {
+    return &ciph_rc4;
 }
 

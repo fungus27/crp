@@ -19,7 +19,7 @@ struct cipher {
 }; /* CIPHER */
 
 struct cipher_context {
-    CIPHER ciph;
+    CIPHER *ciph;
     unsigned char *state;
     unsigned int queue_size;
     unsigned char *queue_buf;

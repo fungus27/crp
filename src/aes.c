@@ -221,8 +221,7 @@ static int dec_ecb_aes256_update(unsigned char *state, unsigned char *ciphertext
     return block_dec_aes(ciphertext, plaintext, state + 256, state, 15, 8);
 }
 
-CIPHER ecb_aes256() {
-    CIPHER ciph = {
+static CIPHER ciph_ecb_aes256 = { // TODO: make this constant
         .block_size = 16,
         .key_size = 32, .iv_size = 0,
 
@@ -235,7 +234,8 @@ CIPHER ecb_aes256() {
         .dec_state_init = dec_ecb_aes256_init,
         .decrypt_update = dec_ecb_aes256_update,
         .unpadder = util_unpad_pkcs,
-    };
-    return ciph;
-}
+};
 
+CIPHER *ecb_aes256() {
+    return &ciph_ecb_aes256;
+}
