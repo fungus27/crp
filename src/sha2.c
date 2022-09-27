@@ -4,7 +4,9 @@
 #include <string.h>
 #include <limits.h>
 
-#include "digest.h"
+#include <crp/digest.h>
+
+#include "digest_internal.h"
 #include "util.h"
 
 static void onezero_pad(unsigned char *rest, unsigned int rest_len, unsigned int block_len) {
@@ -309,81 +311,87 @@ static int sha512_224_final(unsigned char *state, unsigned char *rest, unsigned 
     return 1;
 }
 
-DIGEST sha256() {
-    DIGEST digest = {
-        .digest_size = 32,
-        .block_size = 64,
-        .state_size = 40,
+static DIGEST md_sha256 = {
+    .digest_size = 32,
+    .block_size = 64,
+    .state_size = 40,
 
-        .state_init = sha256_init,
-        .update = sha256_update,
-        .final = sha256_final
-    };
-    return digest;
+    .state_init = sha256_init,
+    .update = sha256_update,
+    .final = sha256_final
+};
+
+static DIGEST md_sha224 = {
+    .digest_size = 28,
+    .block_size = 64,
+    .state_size = 40,
+
+    .state_init = sha224_init,
+    .update = sha256_update,
+    .final = sha224_final
+};
+
+static DIGEST md_sha512 = {
+    .digest_size = 64,
+    .block_size = 128,
+    .state_size = 80,
+
+    .state_init = sha512_init,
+    .update = sha512_update,
+    .final = sha512_final
+};
+
+static DIGEST md_sha384 = {
+    .digest_size = 48,
+    .block_size = 128,
+    .state_size = 80,
+
+    .state_init = sha384_init,
+    .update = sha512_update,
+    .final = sha384_final
+};
+
+static DIGEST md_sha512_256 = {
+    .digest_size = 32,
+    .block_size = 128,
+    .state_size = 80,
+
+    .state_init = sha512_256_init,
+    .update = sha512_update,
+    .final = sha512_256_final
+};
+
+static DIGEST md_sha512_224 = {
+    .digest_size = 28,
+    .block_size = 128,
+    .state_size = 80,
+
+    .state_init = sha512_224_init,
+    .update = sha512_update,
+    .final = sha512_224_final
+};
+
+DIGEST *sha256() {
+    return &md_sha256;
 }
 
-DIGEST sha224() {
-    DIGEST digest = {
-        .digest_size = 28,
-        .block_size = 64,
-        .state_size = 40,
-
-        .state_init = sha224_init,
-        .update = sha256_update,
-        .final = sha224_final
-    };
-    return digest;
+DIGEST *sha224() {
+    return &md_sha224;
 }
 
-DIGEST sha512() {
-    DIGEST digest = {
-        .digest_size = 64,
-        .block_size = 128,
-        .state_size = 80,
-
-        .state_init = sha512_init,
-        .update = sha512_update,
-        .final = sha512_final
-    };
-    return digest;
+DIGEST *sha512() {
+    return &md_sha512;
 }
 
-DIGEST sha384() {
-    DIGEST digest = {
-        .digest_size = 48,
-        .block_size = 128,
-        .state_size = 80,
-
-        .state_init = sha384_init,
-        .update = sha512_update,
-        .final = sha384_final
-    };
-    return digest;
+DIGEST *sha384() {
+    return &md_sha384;
 }
 
 // TODO: implement variable size t in SHA-512/t
-DIGEST sha512_256() {
-    DIGEST digest = {
-        .digest_size = 32,
-        .block_size = 128,
-        .state_size = 80,
-
-        .state_init = sha512_256_init,
-        .update = sha512_update,
-        .final = sha512_256_final
-    };
-    return digest;
+DIGEST *sha512_256() {
+    return &md_sha512_256;
 }
 
-DIGEST sha512_224() {
-    DIGEST digest = {
-        .digest_size = 28,
-        .block_size = 128,
-        .state_size = 80,
-
-        .state_init = sha512_224_init,
-        .update = sha512_update,
-        .final = sha512_224_final
-    };
-    return digest;
+DIGEST *sha512_224() {
+    return &md_sha512_224;
 }

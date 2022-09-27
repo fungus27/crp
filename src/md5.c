@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "digest.h"
+#include <crp/digest.h>
+
+#include "digest_internal.h"
 #include "util.h"
 
 static int md5_init(unsigned char *state) {
@@ -100,15 +102,17 @@ static int md5_final(unsigned char *state, unsigned char *rest, unsigned int res
     return 1;
 }
 
-DIGEST md5() {
-    DIGEST digest = {
-        .digest_size = 16,
-        .block_size = 64,
-        .state_size = 24,
 
-        .state_init = md5_init,
-        .update = md5_update,
-        .final = md5_final
-    };
-    return digest;
+static DIGEST md_md5 = {
+    .digest_size = 16,
+    .block_size = 64,
+    .state_size = 24,
+
+    .state_init = md5_init,
+    .update = md5_update,
+    .final = md5_final
+};
+
+DIGEST *md5() {
+    return &md_md5;
 }

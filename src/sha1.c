@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "digest.h"
+#include <crp/digest.h>
+
+#include "digest_internal.h"
 #include "util.h"
 
 static int sha1_init(unsigned char *state) {
@@ -86,15 +88,16 @@ static int sha1_final(unsigned char *state, unsigned char *rest, unsigned int re
     return 1;
 }
 
-DIGEST sha1() {
-    DIGEST digest = {
-        .digest_size = 20,
-        .block_size = 64,
-        .state_size = 28,
-        
-        .state_init = sha1_init,
-        .update = sha1_update,
-        .final = sha1_final
-    };
-    return digest;
+static DIGEST md_sha1 = {
+    .digest_size = 20,
+    .block_size = 64,
+    .state_size = 28,
+
+    .state_init = sha1_init,
+    .update = sha1_update,
+    .final = sha1_final
+};
+
+DIGEST *sha1() {
+    return &md_sha1;
 }

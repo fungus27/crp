@@ -5,7 +5,7 @@ typedef struct cipher CIPHER;
 typedef struct cipher_context CIPH_CTX;
 
 CIPH_CTX *alloc_ciph_ctx();
-void free_ciph_ctx();
+void free_ciph_ctx(CIPH_CTX *ptr);
 
 int encrypt_init(CIPH_CTX *ctx, CIPHER *cipher, unsigned char *key, unsigned char *iv);
 int encrypt_update(CIPH_CTX *ctx, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext, unsigned int *ct_len);
