@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <crp/cipher.h>
-#include "cipher_internal.h"
+#include <crp/sym.h>
+#include "sym_internal.h"
 
 static int rc4_init(unsigned char *key, unsigned char *iv, unsigned char *state) {
     const unsigned int key_len = 16; // TODO: implement variable key lenght
@@ -43,7 +43,7 @@ static int dec_rc4_update(unsigned char *state, unsigned char *ciphertext, unsig
     return enc_rc4_update(state, ciphertext, ct_len, plaintext);
 }
 
-static CIPHER ciph_rc4 = {
+static SYM_CIPH ciph_rc4 = {
     .block_size = 0,
     .key_size = 16, .iv_size = 0,
 
@@ -58,7 +58,7 @@ static CIPHER ciph_rc4 = {
     .unpadder = NULL,
 };
 
-CIPHER *rc4() {
+SYM_CIPH *rc4() {
     return &ciph_rc4;
 }
 

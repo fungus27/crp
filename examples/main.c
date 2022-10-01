@@ -4,7 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include <crp/cipher.h>
+#include <crp/sym.h>
 #include <crp/digest.h>
 
 void hexdump(unsigned char *in, unsigned int len) {

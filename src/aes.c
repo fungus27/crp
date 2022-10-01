@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <crp/cipher.h>
-#include "cipher_internal.h"
+#include <crp/sym.h>
+#include "sym_internal.h"
 #include "util.h"
 
 static unsigned char gf_mul(unsigned char a, unsigned char b) {
@@ -221,7 +221,7 @@ static int dec_ecb_aes256_update(unsigned char *state, unsigned char *ciphertext
     return block_dec_aes(ciphertext, plaintext, state + 256, state, 15, 8);
 }
 
-static CIPHER ciph_ecb_aes256 = { // TODO: make this constant
+static SYM_CIPH ciph_ecb_aes256 = { // TODO: make this constant
         .block_size = 16,
         .key_size = 32, .iv_size = 0,
 
@@ -236,6 +236,6 @@ static CIPHER ciph_ecb_aes256 = { // TODO: make this constant
         .unpadder = util_unpad_pkcs,
 };
 
-CIPHER *ecb_aes256() {
+SYM_CIPH *ecb_aes256() {
     return &ciph_ecb_aes256;
 }

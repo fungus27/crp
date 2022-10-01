@@ -1,9 +1,9 @@
 #ifndef CIPHER_INT_H
 #define CIPHER_INT_H
 
-#include <crp/cipher.h>
+#include <crp/sym.h>
 
-struct cipher {
+struct sym_cipher {
     unsigned int block_size; // block_size = 0 for stream ciphers
     unsigned int key_size, iv_size;
 
@@ -16,13 +16,13 @@ struct cipher {
     int (*dec_state_init)(unsigned char *key, unsigned char *iv, unsigned char *state);
     int (*decrypt_update)(unsigned char *state, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext);
     int (*unpadder)(unsigned char *block, unsigned int block_size, unsigned int *cutoff);
-}; /* CIPHER */
+}; /* SYM_CIPH */
 
-struct cipher_context {
-    CIPHER *ciph;
+struct sym_cipher_context {
+    SYM_CIPH *ciph;
     unsigned char *state;
     unsigned int queue_size;
     unsigned char *queue_buf;
-}; /* CIPH_CTX */
+}; /* SYM_CTX */
 
 #endif // CIPHER_INT_H

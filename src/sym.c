@@ -1,18 +1,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <crp/cipher.h>
-#include "cipher_internal.h"
+#include <crp/sym.h>
+#include "sym_internal.h"
 
-CIPH_CTX *alloc_ciph_ctx() {
-    return malloc(sizeof(CIPH_CTX));
+SYM_CTX *alloc_sym_ctx() {
+    return malloc(sizeof(SYM_CTX));
 }
 
-void free_ciph_ctx(CIPH_CTX *ptr) {
+void free_sym_ctx(SYM_CTX *ptr) {
     free(ptr);
 }
 
-int encrypt_init(CIPH_CTX *ctx, CIPHER *cipher, unsigned char *key, unsigned char *iv) {
+int encrypt_init(SYM_CTX *ctx, SYM_CIPH *cipher, unsigned char *key, unsigned char *iv) {
     ctx->ciph = cipher;
     ctx->state = NULL;
     if (cipher->enc_state_size) {
@@ -30,7 +30,7 @@ int encrypt_init(CIPH_CTX *ctx, CIPHER *cipher, unsigned char *key, unsigned cha
     return cipher->enc_state_init(key, iv, ctx->state);
 }
 
-int encrypt_update(CIPH_CTX *ctx, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext, unsigned int *ct_len) {
+int encrypt_update(SYM_CTX *ctx, unsigned char *plaintext, unsigned int pt_len, unsigned char *ciphertext, unsigned int *ct_len) {
     *ct_len = 0;
     if (ctx->ciph->block_size) {
         while (pt_len >= ctx->ciph->block_size) {
@@ -54,7 +54,7 @@ int encrypt_update(CIPH_CTX *ctx, unsigned char *plaintext, unsigned int pt_len,
     return 1;
 }
 
-int encrypt_final(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int *ct_len) {
+int encrypt_final(SYM_CTX *ctx, unsigned char *ciphertext, unsigned int *ct_len) {
     if (ctx->ciph->padder)
         if (!ctx->ciph->padder(ctx->queue_buf, ctx->queue_size, ctx->ciph->block_size))
             return 0;
@@ -69,7 +69,7 @@ int encrypt_final(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int *ct_len
     return 1;
 }
 
-int decrypt_init(CIPH_CTX *ctx, CIPHER *cipher, unsigned char *key, unsigned char *iv) {
+int decrypt_init(SYM_CTX *ctx, SYM_CIPH *cipher, unsigned char *key, unsigned char *iv) {
     ctx->ciph = cipher;
     ctx->state = NULL;
     if (cipher->dec_state_size) {
@@ -87,7 +87,7 @@ int decrypt_init(CIPH_CTX *ctx, CIPHER *cipher, unsigned char *key, unsigned cha
     return cipher->dec_state_init(key, iv, ctx->state);
 }
 
-int decrypt_update(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext, int *pt_len) {
+int decrypt_update(SYM_CTX *ctx, unsigned char *ciphertext, unsigned int ct_len, unsigned char *plaintext, int *pt_len) {
     *pt_len = 0;
     if (ctx->ciph->block_size) {
         while (ct_len > ctx->ciph->block_size) {
@@ -111,7 +111,7 @@ int decrypt_update(CIPH_CTX *ctx, unsigned char *ciphertext, unsigned int ct_len
     return 1;
 }
 
-int decrypt_final(CIPH_CTX *ctx, unsigned char *plaintext, int *pt_len) {
+int decrypt_final(SYM_CTX *ctx, unsigned char *plaintext, int *pt_len) {
     if (ctx->queue_buf) {
         if (!ctx->ciph->decrypt_update(ctx->state, ctx->queue_buf, ctx->ciph->block_size, plaintext))
             return 0;
