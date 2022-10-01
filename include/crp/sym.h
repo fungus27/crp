@@ -1,5 +1,5 @@
-#ifndef CIPHER_H
-#define CIPHER_H
+#ifndef SYM_H
+#define SYM_H
 
 typedef struct sym_cipher SYM_CIPH;
 typedef struct sym_cipher_context SYM_CTX;
@@ -19,4 +19,4 @@ int decrypt_final(SYM_CTX *ctx, unsigned char *plaintext, int *pt_len);
 SYM_CIPH *ecb_aes256();
 SYM_CIPH *rc4();
 
-#endif // CIPHER_H
+#endif // SYM_H

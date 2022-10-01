@@ -1,5 +1,5 @@
-#ifndef CIPHER_INT_H
-#define CIPHER_INT_H
+#ifndef SYM_INT_H
+#define SYM_INT_H
 
 #include <crp/sym.h>
 
@@ -25,4 +25,4 @@ struct sym_cipher_context {
     unsigned char *queue_buf;
 }; /* SYM_CTX */
 
-#endif // CIPHER_INT_H
+#endif // SYM_INT_H
