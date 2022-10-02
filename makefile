@@ -7,8 +7,10 @@ EXAMPLES := $(addprefix examples/bin/,main)
 
 all: lib/libcrp.a examples
 
-lib/libcrp.a: $(OBJ)
+lib/libcrp.a: $(OBJ) lib/
 	ar rcs $@ $(OBJ)
+lib/:
+	mkdir lib
 
 sym.o aes.o rc4.o: sym.h
 digest.o md5.o sha1.o sha2.o: digest.h
