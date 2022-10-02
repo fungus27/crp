@@ -4,6 +4,8 @@
 #define MAX(a, b) ( ((a) > (b)) ? (a) : (b) )
 #define MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
 
+#define CEILDIV(a, b) ( ( (a) + (b) - 1 ) / (b) )
+
 #define LEFTROTATE8(n, d) ( ( (n) << (d) ) | ( (n) >> (8 - (d)) ) )
 #define RIGHTROTATE8(n, d) ( ( (n) >> (d) ) | ( (n) << (8 - (d)) ) )
 
@@ -18,5 +20,10 @@
 
 int util_pad_pkcs(unsigned char *block, unsigned int pt_size, unsigned int block_size);
 int util_unpad_pkcs(unsigned char *block, unsigned int block_size, unsigned int *cutoff);
+
+// TODO: make a reliable prng
+int rand_bytes(unsigned char *out, unsigned int size);
+
+void hexdump(unsigned char *in, unsigned int len);
 
 #endif // UTIL_H
